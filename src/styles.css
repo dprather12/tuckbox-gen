@@ -112,6 +112,12 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 
 .preview-column { min-width: 0; padding: 34px clamp(24px, 4vw, 54px) 50px; background: #e8ece7; }
 .preview-toolbar { display: flex; justify-content: space-between; align-items: center; }
+.preview-paper-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 220px));
+  gap: 14px;
+  margin-top: 18px;
+}
 .toggle { display: flex; align-items: center; gap: 9px; color: #53645b; font-size: .76rem; font-weight: 700; cursor: pointer; }
 .toggle input { display: none; }
 .toggle span { width: 35px; height: 20px; padding: 3px; border-radius: 20px; background: #aeb9b2; transition: .2s; }

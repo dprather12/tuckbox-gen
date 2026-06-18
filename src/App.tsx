@@ -194,34 +194,6 @@ export default function App() {
             </label>
           </section>
 
-          <section className="control-section">
-            <div className="section-heading">
-              <div>
-                <h2>Paper setup</h2>
-              </div>
-            </div>
-            <div className="two-column">
-              <label className="field">
-                <span>Paper</span>
-                <select value={paperSize} onChange={(event) => setPaperSize(event.target.value as PaperSize)}>
-                  <option value="letter">US Letter</option>
-                  <option value="a4">A4</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Orientation</span>
-                <select value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)}>
-                  <option value="auto">Auto</option>
-                  <option value="portrait">Portrait</option>
-                  <option value="landscape">Landscape</option>
-                </select>
-              </label>
-            </div>
-            <p className="resolved-note">
-              Using {paper.name}, {paper.orientation} · {paper.width.toFixed(1)} × {paper.height.toFixed(1)} mm
-            </p>
-          </section>
-
           <section className="control-section artwork-section">
             <div className="section-heading">
               <div>
@@ -272,6 +244,23 @@ export default function App() {
             <div>
               <h2>Print preview</h2>
             </div>
+          </div>
+          <div className="preview-paper-controls">
+            <label className="field">
+              <span>Paper</span>
+              <select value={paperSize} onChange={(event) => setPaperSize(event.target.value as PaperSize)}>
+                <option value="letter">US Letter</option>
+                <option value="a4">A4</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Orientation</span>
+              <select value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)}>
+                <option value="auto">Auto</option>
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+              </select>
+            </label>
           </div>
 
           {!dimensionsValid ? (
