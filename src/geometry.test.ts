@@ -19,6 +19,9 @@ describe("geometry", () => {
     expect(result.panels.front.width).toBe(63.5);
     expect(result.panels.left.width).toBe(19.05);
     expect(result.panels.front.x).toBeCloseTo(82.55);
+    expect(result.tuckLip).toBeCloseTo(19.05 * 0.6);
+    expect(result.top.height).toBe(19.05);
+    expect(result.bottom.height).toBe(19.05);
   });
 
   it("selects landscape when only landscape fits", () => {

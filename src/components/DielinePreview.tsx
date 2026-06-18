@@ -174,10 +174,10 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
 
         <g id="cut-lines">
           <line x1={px} y1={py + g.bodyY} x2={px} y2={bodyBottom} className="cut-line" />
-          <line x1={px} y1={py + g.tuckLip} x2={px} y2={top.y} className="cut-line" />
-          <line x1={px + panels.back.width} y1={py + g.tuckLip} x2={px + panels.back.width} y2={top.y} className="cut-line" />
-          <line x1={px} y1={bottom.y + bottom.height} x2={px} y2={bottom.y + g.flapDepth} className="cut-line" />
-          <line x1={px + panels.back.width} y1={bottom.y + bottom.height} x2={px + panels.back.width} y2={bottom.y + g.flapDepth} className="cut-line" />
+          <line x1={top.x} y1={top.y} x2={top.x} y2={py + g.bodyY} className="cut-line" />
+          <line x1={top.x + top.width} y1={top.y} x2={top.x + top.width} y2={py + g.bodyY} className="cut-line" />
+          <line x1={bottom.x} y1={bottom.y} x2={bottom.x} y2={bottom.y + bottom.height} className="cut-line" />
+          <line x1={bottom.x + bottom.width} y1={bottom.y} x2={bottom.x + bottom.width} y2={bottom.y + bottom.height} className="cut-line" />
           <line x1={panels.front.x} y1={py + g.bodyY} x2={panels.front.x + panels.front.width} y2={py + g.bodyY} className="cut-line" />
           <line x1={panels.front.x} y1={bodyBottom} x2={panels.front.x + panels.front.width} y2={bodyBottom} className="cut-line" />
         </g>

@@ -28,7 +28,7 @@ export function fromMillimeters(value: number, unit: Unit): number {
 export function calculateDieline(dimensions: BoxDimensions): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
   const glueTab = Math.min(18, Math.max(8, d * 0.65));
-  const tuckLip = Math.min(16, Math.max(7, d * 0.45));
+  const tuckLip = Math.min(20, Math.max(9, d * 0.6));
   const flapDepth = d + tuckLip;
   const bodyY = flapDepth;
 
