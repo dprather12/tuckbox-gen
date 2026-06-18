@@ -144,6 +144,24 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   font-weight: 700;
   cursor: pointer;
 }
+.wrap-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: #294638;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.wrap-option input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #315a46;
+}
+.wrap-art-card { grid-column: 1 / -1; }
+.wrap-art-card .segmented { grid-template-columns: repeat(3, 1fr); }
 .white-flaps-option input {
   width: 18px;
   height: 18px;

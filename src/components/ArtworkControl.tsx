@@ -2,9 +2,10 @@ import type { ArtworkSettings, FaceName } from "../types";
 import { extractDominantColor } from "../color";
 
 interface Props {
-  face: FaceName;
+  face: FaceName | "wrap";
   artwork?: ArtworkSettings;
-  onChange: (face: FaceName, artwork?: ArtworkSettings) => void;
+  onChange: (face: FaceName | "wrap", artwork?: ArtworkSettings) => void;
+  allowRepeat?: boolean;
 }
 
 const LABELS: Record<FaceName, string> = {
@@ -16,7 +17,7 @@ const LABELS: Record<FaceName, string> = {
   bottom: "Bottom"
 };
 
-export function ArtworkControl({ face, artwork, onChange }: Props) {
+export function ArtworkControl({ face, artwork, onChange, allowRepeat = false }: Props) {
   const handleFile = (file?: File) => {
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
@@ -33,6 +34,13 @@ export function ArtworkControl({ face, artwork, onChange }: Props) {
       } catch {
         // The image remains usable if pixel sampling is unavailable.
       }
+      const image = new Image();
+      image.src = src;
+      try {
+        await image.decode();
+      } catch {
+        // Dimensions are optional; rendering has a safe fallback.
+      }
       onChange(face, {
         src,
         name: file.name,
@@ -40,7 +48,9 @@ export function ArtworkControl({ face, artwork, onChange }: Props) {
         zoom: artwork?.zoom ?? 1,
         offsetX: artwork?.offsetX ?? 0,
         offsetY: artwork?.offsetY ?? 0,
-        dominantColor
+        dominantColor,
+        imageWidth: image.naturalWidth || undefined,
+        imageHeight: image.naturalHeight || undefined
       });
     };
     reader.readAsDataURL(file);
@@ -51,10 +61,10 @@ export function ArtworkControl({ face, artwork, onChange }: Props) {
   };
 
   return (
-    <article className={`art-card ${artwork ? "has-art" : ""}`}>
+    <article className={`art-card ${artwork ? "has-art" : ""} ${allowRepeat ? "wrap-art-card" : ""}`}>
       <div className="art-card-heading">
         <div>
-          <h3>{LABELS[face]}</h3>
+          <h3>{face === "wrap" ? "Wraparound body" : LABELS[face]}</h3>
         </div>
         {artwork && (
           <button className="text-button danger" type="button" onClick={() => onChange(face)}>
@@ -90,6 +100,15 @@ export function ArtworkControl({ face, artwork, onChange }: Props) {
             >
               Stretch
             </button>
+            {allowRepeat && (
+              <button
+                className={artwork.fit === "repeat" ? "active" : ""}
+                type="button"
+                onClick={() => patch({ fit: "repeat" })}
+              >
+                Repeat
+              </button>
+            )}
           </div>
 
           {artwork.fit === "crop" && (

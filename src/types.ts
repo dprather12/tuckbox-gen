@@ -3,7 +3,7 @@ export type PaperSize = "letter" | "a4";
 export type Orientation = "auto" | "portrait" | "landscape";
 export type ResolvedOrientation = Exclude<Orientation, "auto">;
 export type FaceName = "front" | "back" | "left" | "right" | "top" | "bottom";
-export type ImageFit = "crop" | "stretch";
+export type ImageFit = "crop" | "stretch" | "repeat";
 export type BottomClosure = "tuck" | "glued";
 
 export interface BoxDimensions {
@@ -20,6 +20,8 @@ export interface ArtworkSettings {
   offsetX: number;
   offsetY: number;
   dominantColor?: string;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 export type ArtworkMap = Partial<Record<FaceName, ArtworkSettings>>;

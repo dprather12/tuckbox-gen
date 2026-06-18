@@ -37,6 +37,8 @@ export default function App() {
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>("tuck");
   const [colorFlaps, setColorFlaps] = useState(true);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
+  const [useWrapArtwork, setUseWrapArtwork] = useState(false);
+  const [wrapArtwork, setWrapArtwork] = useState<ArtworkSettings>();
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -90,6 +92,15 @@ export default function App() {
     });
   };
 
+  const updateWrapArtwork = (_face: FaceName | "wrap", next?: ArtworkSettings) => {
+    if (next?.src && next.src !== wrapArtwork?.src) {
+      trackEvent("artwork_upload", { face: "wrap", file_type: next.src.slice(5, next.src.indexOf(";")) || "unknown" });
+    } else if (!next && wrapArtwork) {
+      trackEvent("artwork_remove", { face: "wrap" });
+    }
+    setWrapArtwork(next);
+  };
+
   const handlePdf = async () => {
     if (!svgRef.current || !fits) return;
     setExporting(true);
@@ -99,7 +110,7 @@ export default function App() {
         format: "pdf",
         paper: paper.name,
         orientation: paper.orientation,
-        artwork_faces: Object.keys(artwork).length
+        artwork_faces: Object.keys(artwork).length + (useWrapArtwork && wrapArtwork ? 1 : 0)
       });
     } catch (error) {
       console.error(error);
@@ -218,6 +229,14 @@ export default function App() {
               </div>
             </div>
             <p className="section-copy">PNG, JPEG, or WebP. Each face can be cropped or stretched independently.</p>
+            <label className="wrap-option">
+              <input
+                type="checkbox"
+                checked={useWrapArtwork}
+                onChange={(event) => setUseWrapArtwork(event.target.checked)}
+              />
+              Use one image around the front, back, and sides
+            </label>
             <label className="white-flaps-option">
               <input
                 type="checkbox"
@@ -227,12 +246,22 @@ export default function App() {
               Leave tabs and dust flaps white
             </label>
             <div className="artwork-grid">
-              {faces.map((face) => (
+              {useWrapArtwork && (
+                <ArtworkControl
+                  face="wrap"
+                  artwork={wrapArtwork}
+                  onChange={updateWrapArtwork}
+                  allowRepeat
+                />
+              )}
+              {(useWrapArtwork ? (["top", "bottom"] as FaceName[]) : faces).map((face) => (
                 <ArtworkControl
                   key={face}
                   face={face}
                   artwork={artwork[face]}
-                  onChange={updateArtwork}
+                  onChange={(selectedFace, next) =>
+                    updateArtwork(selectedFace as FaceName, next)
+                  }
                 />
               ))}
             </div>
@@ -266,6 +295,7 @@ export default function App() {
                 geometry={geometry}
                 artwork={artwork}
                 colorFlaps={colorFlaps}
+                wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
               />
             </div>
           </div>
@@ -287,7 +317,7 @@ export default function App() {
                     format: "svg",
                     paper: paper.name,
                     orientation: paper.orientation,
-                    artwork_faces: Object.keys(artwork).length
+                    artwork_faces: Object.keys(artwork).length + (useWrapArtwork && wrapArtwork ? 1 : 0)
                   });
                 }}
               >

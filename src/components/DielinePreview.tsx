@@ -14,6 +14,7 @@ interface Props {
   geometry: DielineGeometry;
   artwork: ArtworkMap;
   colorFlaps: boolean;
+  wrapArtwork?: ArtworkSettings;
 }
 
 function ArtworkImage({
@@ -95,7 +96,7 @@ function DustFlap({
 }
 
 export const DielinePreview = forwardRef<SVGSVGElement, Props>(
-  ({ paper, geometry, artwork, colorFlaps }, ref) => {
+  ({ paper, geometry, artwork, colorFlaps, wrapArtwork }, ref) => {
     const rawId = useId().replace(/:/g, "");
     const g = geometry;
     const px = g.pageX;
@@ -126,6 +127,17 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const bodyBottom = py + g.bodyY + panels.back.height;
     const rightEdge = px + 2 * panels.back.width + 2 * panels.left.width;
     const glueX = rightEdge;
+    const bodyRect = {
+      x: px,
+      y: py + g.bodyY,
+      width: rightEdge - px,
+      height: panels.back.height
+    };
+    const wrapTileHeight = bodyRect.height;
+    const wrapTileWidth =
+      wrapArtwork?.imageWidth && wrapArtwork.imageHeight
+        ? wrapTileHeight * (wrapArtwork.imageWidth / wrapArtwork.imageHeight)
+        : wrapTileHeight;
     const topFlapPath = `M ${top.x + top.width} ${top.y} L ${top.x + top.width} ${top.y - g.tuckLip * 0.35} Q ${top.x + top.width / 2} ${top.y - g.tuckLip} ${top.x} ${top.y - g.tuckLip * 0.35} L ${top.x} ${top.y}`;
     const bottomFlapPath = `M ${bottom.x} ${bottom.y + bottom.height} L ${bottom.x} ${bottom.y + bottom.height + g.tuckLip * 0.35} Q ${bottom.x + bottom.width / 2} ${bottom.y + bottom.height + g.tuckLip} ${bottom.x + bottom.width} ${bottom.y + bottom.height + g.tuckLip * 0.35} L ${bottom.x + bottom.width} ${bottom.y + bottom.height}`;
     const bottomUnderPath = bottomUnderFlap
@@ -160,6 +172,24 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               <rect {...rect} />
             </clipPath>
           ))}
+          <clipPath id={`${rawId}-body-wrap`}><rect {...bodyRect} /></clipPath>
+          <pattern
+            id={`${rawId}-wrap-pattern`}
+            patternUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width={wrapTileWidth}
+            height={wrapTileHeight}
+          >
+            {wrapArtwork && (
+              <image
+                href={wrapArtwork.src}
+                width={wrapTileWidth}
+                height={wrapTileHeight}
+                preserveAspectRatio="xMidYMid meet"
+              />
+            )}
+          </pattern>
           <clipPath id={`${rawId}-top-flap`}><path d={topFlapPath} /></clipPath>
           <clipPath id={`${rawId}-bottom-flap`}><path d={bottomFlapPath} /></clipPath>
           <clipPath id={`${rawId}-left-top-dust`}><polygon points={dustPoints(leftTopDust, true)} /></clipPath>
@@ -189,7 +219,18 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         </g>
 
         <g id="artwork">
+          {wrapArtwork?.fit === "repeat" && (
+            <rect {...bodyRect} fill={`url(#${rawId}-wrap-pattern)`} />
+          )}
+          {wrapArtwork && wrapArtwork.fit !== "repeat" && (
+            <ArtworkImage
+              rect={bodyRect}
+              artwork={wrapArtwork}
+              clipId={`${rawId}-body-wrap`}
+            />
+          )}
           {faces.map(([face, rect]) => (
+            wrapArtwork && ["front", "back", "left", "right"].includes(face) ? null :
             <ArtworkImage
               key={face}
               rect={rect}
@@ -225,10 +266,10 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               <path d={bottomUnderPath} className="cut-shape" />
             </>
           )}
-          <DustFlap {...leftTopDust} top fill={colorFlaps ? artwork.left?.dominantColor : undefined} />
-          <DustFlap {...rightTopDust} top fill={colorFlaps ? artwork.right?.dominantColor : undefined} />
-          <DustFlap {...leftBottomDust} top={false} fill={colorFlaps ? artwork.left?.dominantColor : undefined} />
-          <DustFlap {...rightBottomDust} top={false} fill={colorFlaps ? artwork.right?.dominantColor : undefined} />
+          <DustFlap {...leftTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.left?.dominantColor : undefined} />
+          <DustFlap {...rightTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.right?.dominantColor : undefined} />
+          <DustFlap {...leftBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.left?.dominantColor : undefined} />
+          <DustFlap {...rightBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.right?.dominantColor : undefined} />
           <polygon
             points={gluePoints}
             className="flap-fill"
