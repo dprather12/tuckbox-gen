@@ -11,6 +11,7 @@ import {
   toMillimeters
 } from "./geometry";
 import { downloadPdf, downloadSvg } from "./export";
+import { trackEvent } from "./analytics";
 import type {
   ArtworkMap,
   ArtworkSettings,
@@ -31,9 +32,9 @@ export default function App() {
     height: 3.5
   });
   const [paperSize, setPaperSize] = useState<PaperSize>("letter");
-  const [orientation, setOrientation] = useState<Orientation>("auto");
+  const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [artwork, setArtwork] = useState<ArtworkMap>({});
-  const [showBleed, setShowBleed] = useState(true);
+  const [showBleed, setShowBleed] = useState(false);
   const [includeBleedInExport, setIncludeBleedInExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -64,6 +65,16 @@ export default function App() {
   };
 
   const updateArtwork = (face: FaceName, next?: ArtworkSettings) => {
+    const previous = artwork[face];
+    if (next?.src && next.src !== previous?.src) {
+      trackEvent("artwork_upload", {
+        face,
+        file_type: next.src.slice(5, next.src.indexOf(";")) || "unknown"
+      });
+    } else if (!next && previous) {
+      trackEvent("artwork_remove", { face });
+    }
+
     setArtwork((current) => {
       const copy = { ...current };
       if (next) copy[face] = next;
@@ -77,6 +88,12 @@ export default function App() {
     setExporting(true);
     try {
       await downloadPdf(svgRef.current, paper, includeBleedInExport);
+      trackEvent("template_download", {
+        format: "pdf",
+        paper: paper.name,
+        orientation: paper.orientation,
+        artwork_faces: Object.keys(artwork).length
+      });
     } catch (error) {
       console.error(error);
       window.alert("The PDF could not be generated. Try downloading the SVG instead.");
@@ -264,7 +281,16 @@ export default function App() {
                 className="secondary-button"
                 type="button"
                 disabled={!fits}
-                onClick={() => svgRef.current && downloadSvg(svgRef.current, includeBleedInExport)}
+                onClick={() => {
+                  if (!svgRef.current) return;
+                  downloadSvg(svgRef.current, includeBleedInExport);
+                  trackEvent("template_download", {
+                    format: "svg",
+                    paper: paper.name,
+                    orientation: paper.orientation,
+                    artwork_faces: Object.keys(artwork).length
+                  });
+                }}
               >
                 Download SVG
               </button>

@@ -1,0 +1,16 @@
+{
+  "name": "Tuckbox Studio",
+  "short_name": "Tuckbox",
+  "description": "Create exact-size, print-ready card tuckbox templates.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#e9ede7",
+  "theme_color": "#172b22",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
