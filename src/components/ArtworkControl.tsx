@@ -79,7 +79,10 @@ export function ArtworkControl({ face, artwork, onChange, allowRepeat = false }:
           accept="image/png,image/jpeg,image/webp"
           onChange={(event) => handleFile(event.target.files?.[0])}
         />
-        <span>{artwork ? "Replace image" : "Choose image"}</span>
+        <span>
+          {artwork ? "Replace image" : "Choose image"}
+          <small>PNG, JPEG</small>
+        </span>
       </label>
 
       {artwork && (
