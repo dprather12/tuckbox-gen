@@ -4,7 +4,11 @@ function exportClone(source: SVGSVGElement, includeBleedGuides: boolean): SVGSVG
   const clone = source.cloneNode(true) as SVGSVGElement;
   clone.classList.remove("dieline-svg");
   clone.querySelectorAll('[data-preview-guide="safe"]').forEach((node) => node.remove());
-  if (!includeBleedGuides) {
+  if (includeBleedGuides) {
+    clone.querySelectorAll<SVGElement>('[data-preview-guide="bleed"]').forEach((node) => {
+      node.style.removeProperty("display");
+    });
+  } else {
     clone.querySelectorAll('[data-preview-guide="bleed"]').forEach((node) => node.remove());
   }
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");

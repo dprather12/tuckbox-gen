@@ -34,7 +34,6 @@ export default function App() {
   const [paperSize, setPaperSize] = useState<PaperSize>("letter");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [artwork, setArtwork] = useState<ArtworkMap>({});
-  const [showBleed, setShowBleed] = useState(false);
   const [includeBleedInExport, setIncludeBleedInExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -123,9 +122,7 @@ export default function App() {
         <aside className="controls">
           <section className="control-section">
             <div className="section-heading">
-              <span className="step">01</span>
               <div>
-                <p className="eyebrow">Finished size</p>
                 <h2>Box dimensions</h2>
               </div>
             </div>
@@ -164,9 +161,7 @@ export default function App() {
 
           <section className="control-section">
             <div className="section-heading">
-              <span className="step">02</span>
               <div>
-                <p className="eyebrow">Output sheet</p>
                 <h2>Paper setup</h2>
               </div>
             </div>
@@ -194,9 +189,7 @@ export default function App() {
 
           <section className="control-section artwork-section">
             <div className="section-heading">
-              <span className="step">03</span>
               <div>
-                <p className="eyebrow">Optional</p>
                 <h2>Panel artwork</h2>
               </div>
             </div>
@@ -217,14 +210,8 @@ export default function App() {
         <section className="preview-column">
           <div className="preview-toolbar">
             <div>
-              <p className="eyebrow">Live sheet</p>
               <h2>Print preview</h2>
             </div>
-            <label className="toggle">
-              <input type="checkbox" checked={showBleed} onChange={(event) => setShowBleed(event.target.checked)} />
-              <span />
-              Show bleed
-            </label>
           </div>
 
           {!dimensionsValid ? (
@@ -237,12 +224,7 @@ export default function App() {
                 Available paper: {paper.width.toFixed(1)} × {paper.height.toFixed(1)} mm.
               </span>
             </div>
-          ) : (
-            <div className="status-card success">
-              <strong>Ready at actual size</strong>
-              <span>Dieline: {rawGeometry.totalWidth.toFixed(1)} × {rawGeometry.totalHeight.toFixed(1)} mm</span>
-            </div>
-          )}
+          ) : null}
 
           <div className={`paper-stage ${paper.orientation}`}>
             <div className="paper-shadow">
@@ -251,20 +233,12 @@ export default function App() {
                 paper={paper}
                 geometry={geometry}
                 artwork={artwork}
-                showBleed={showBleed}
               />
             </div>
           </div>
 
-          <div className="legend">
-            <span><i className="cut-swatch" /> Cut</span>
-            <span><i className="fold-swatch" /> Fold</span>
-            <span><i className="bleed-swatch" /> Bleed</span>
-          </div>
-
           <section className="export-card">
             <div>
-              <p className="eyebrow">Final step</p>
               <h2>Download template</h2>
               <p>Print at <strong>Actual size / 100%</strong>. Disable “Fit to page” in the print dialog.</p>
             </div>

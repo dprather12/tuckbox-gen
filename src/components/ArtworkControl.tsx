@@ -1,4 +1,5 @@
 import type { ArtworkSettings, FaceName } from "../types";
+import { extractDominantColor } from "../color";
 
 interface Props {
   face: FaceName;
@@ -24,14 +25,22 @@ export function ArtworkControl({ face, artwork, onChange }: Props) {
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      const src = String(reader.result);
+      let dominantColor: string | undefined;
+      try {
+        dominantColor = await extractDominantColor(src);
+      } catch {
+        // The image remains usable if pixel sampling is unavailable.
+      }
       onChange(face, {
-        src: String(reader.result),
+        src,
         name: file.name,
-        fit: artwork?.fit ?? "crop",
+        fit: artwork?.fit ?? "stretch",
         zoom: artwork?.zoom ?? 1,
         offsetX: artwork?.offsetX ?? 0,
-        offsetY: artwork?.offsetY ?? 0
+        offsetY: artwork?.offsetY ?? 0,
+        dominantColor
       });
     };
     reader.readAsDataURL(file);
@@ -45,7 +54,6 @@ export function ArtworkControl({ face, artwork, onChange }: Props) {
     <article className={`art-card ${artwork ? "has-art" : ""}`}>
       <div className="art-card-heading">
         <div>
-          <span className="eyebrow">Panel</span>
           <h3>{LABELS[face]}</h3>
         </div>
         {artwork && (

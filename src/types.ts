@@ -18,6 +18,7 @@ export interface ArtworkSettings {
   zoom: number;
   offsetX: number;
   offsetY: number;
+  dominantColor?: string;
 }
 
 export type ArtworkMap = Partial<Record<FaceName, ArtworkSettings>>;

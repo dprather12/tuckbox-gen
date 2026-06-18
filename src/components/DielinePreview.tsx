@@ -13,17 +13,20 @@ interface Props {
   paper: Paper;
   geometry: DielineGeometry;
   artwork: ArtworkMap;
-  showBleed: boolean;
 }
 
 function ArtworkImage({
   rect,
   artwork,
-  clipId
+  clipId,
+  maskId,
+  transform
 }: {
   rect: Rect;
   artwork?: ArtworkSettings;
   clipId: string;
+  maskId?: string;
+  transform?: string;
 }) {
   if (!artwork) return null;
 
@@ -37,6 +40,8 @@ function ArtworkImage({
         height={rect.height}
         preserveAspectRatio="none"
         clipPath={`url(#${clipId})`}
+        mask={maskId ? `url(#${maskId})` : undefined}
+        transform={transform}
       />
     );
   }
@@ -55,6 +60,8 @@ function ArtworkImage({
       height={zoomedHeight}
       preserveAspectRatio="xMidYMid slice"
       clipPath={`url(#${clipId})`}
+      mask={maskId ? `url(#${maskId})` : undefined}
+      transform={transform}
     />
   );
 }
@@ -64,23 +71,30 @@ function DustFlap({
   y,
   width,
   height,
-  top
+  top,
+  fill
 }: {
   x: number;
   y: number;
   width: number;
   height: number;
   top: boolean;
+  fill?: string;
 }) {
   const inset = Math.min(width * 0.2, 3);
   const points = top
     ? `${x},${y + height} ${x + inset},${y} ${x + width - inset},${y} ${x + width},${y + height}`
-    : `${x},${y} ${x + width},${y} ${x + width - inset},${y + height} ${x + inset},${y + height}`;
-  return <polygon points={points} className="cut-shape" />;
+    : `${x + width},${y} ${x + width - inset},${y + height} ${x + inset},${y + height} ${x},${y}`;
+  return (
+    <g>
+      <polygon points={points} className="flap-fill" style={{ fill: fill ?? "none" }} />
+      <polyline points={points} className="cut-shape" />
+    </g>
+  );
 }
 
 export const DielinePreview = forwardRef<SVGSVGElement, Props>(
-  ({ paper, geometry, artwork, showBleed }, ref) => {
+  ({ paper, geometry, artwork }, ref) => {
     const rawId = useId().replace(/:/g, "");
     const g = geometry;
     const px = g.pageX;
@@ -104,6 +118,19 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const bodyBottom = py + g.bodyY + panels.back.height;
     const rightEdge = px + 2 * panels.back.width + 2 * panels.left.width;
     const glueX = rightEdge;
+    const topFlapPath = `M ${top.x + top.width} ${top.y} L ${top.x + top.width} ${top.y - g.tuckLip * 0.35} Q ${top.x + top.width / 2} ${top.y - g.tuckLip} ${top.x} ${top.y - g.tuckLip * 0.35} L ${top.x} ${top.y}`;
+    const bottomFlapPath = `M ${bottom.x} ${bottom.y + bottom.height} L ${bottom.x} ${bottom.y + bottom.height + g.tuckLip * 0.35} Q ${bottom.x + bottom.width / 2} ${bottom.y + bottom.height + g.tuckLip} ${bottom.x + bottom.width} ${bottom.y + bottom.height + g.tuckLip * 0.35} L ${bottom.x + bottom.width} ${bottom.y + bottom.height}`;
+    const dustPoints = (rect: Rect, topSide: boolean) => {
+      const inset = Math.min(rect.width * 0.2, 3);
+      return topSide
+        ? `${rect.x},${rect.y + rect.height} ${rect.x + inset},${rect.y} ${rect.x + rect.width - inset},${rect.y} ${rect.x + rect.width},${rect.y + rect.height}`
+        : `${rect.x + rect.width},${rect.y} ${rect.x + rect.width - inset},${rect.y + rect.height} ${rect.x + inset},${rect.y + rect.height} ${rect.x},${rect.y}`;
+    };
+    const leftTopDust = { x: panels.left.x, y: py + g.tuckLip, width: panels.left.width, height: panels.left.width };
+    const rightTopDust = { x: panels.right.x, y: py + g.tuckLip, width: panels.right.width, height: panels.right.width };
+    const leftBottomDust = { x: panels.left.x, y: bodyBottom, width: panels.left.width, height: panels.left.width };
+    const rightBottomDust = { x: panels.right.x, y: bodyBottom, width: panels.right.width, height: panels.right.width };
+    const gluePoints = `${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
 
     return (
       <svg
@@ -122,8 +149,16 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               <rect {...rect} />
             </clipPath>
           ))}
+          <clipPath id={`${rawId}-top-flap`}><path d={topFlapPath} /></clipPath>
+          <clipPath id={`${rawId}-bottom-flap`}><path d={bottomFlapPath} /></clipPath>
+          <clipPath id={`${rawId}-left-top-dust`}><polygon points={dustPoints(leftTopDust, true)} /></clipPath>
+          <clipPath id={`${rawId}-right-top-dust`}><polygon points={dustPoints(rightTopDust, true)} /></clipPath>
+          <clipPath id={`${rawId}-left-bottom-dust`}><polygon points={dustPoints(leftBottomDust, false)} /></clipPath>
+          <clipPath id={`${rawId}-right-bottom-dust`}><polygon points={dustPoints(rightBottomDust, false)} /></clipPath>
+          <clipPath id={`${rawId}-glue-tab`}><polygon points={gluePoints} /></clipPath>
           <style>{`
             .cut-shape,.cut-line{fill:none;stroke:#17231d;stroke-width:.35}
+            .flap-fill{stroke:none}
             .fold-line{fill:none;stroke:#637168;stroke-width:.28;stroke-dasharray:2 1.3}
             .bleed-line{fill:none;stroke:#d56351;stroke-width:.22;stroke-dasharray:1.2 1.2}
             .safe-line{fill:none;stroke:#c7cec9;stroke-width:.2;stroke-dasharray:2 1.5}
@@ -155,21 +190,33 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
 
         <g id="flaps">
           <path
-            d={`M ${top.x} ${top.y} L ${top.x + top.width} ${top.y} L ${top.x + top.width} ${top.y - g.tuckLip * 0.35} Q ${top.x + top.width / 2} ${top.y - g.tuckLip} ${top.x} ${top.y - g.tuckLip * 0.35} Z`}
+            d={`${topFlapPath} Z`}
+            className="flap-fill"
+            style={{ fill: artwork.top?.dominantColor ?? "none" }}
+          />
+          <path
+            d={topFlapPath}
             className="cut-shape"
           />
           <path
-            d={`M ${bottom.x} ${bottom.y + bottom.height} L ${bottom.x + bottom.width} ${bottom.y + bottom.height} L ${bottom.x + bottom.width} ${bottom.y + bottom.height + g.tuckLip * 0.35} Q ${bottom.x + bottom.width / 2} ${bottom.y + bottom.height + g.tuckLip} ${bottom.x} ${bottom.y + bottom.height + g.tuckLip * 0.35} Z`}
+            d={`${bottomFlapPath} Z`}
+            className="flap-fill"
+            style={{ fill: artwork.bottom?.dominantColor ?? "none" }}
+          />
+          <path
+            d={bottomFlapPath}
             className="cut-shape"
           />
-          <DustFlap x={panels.left.x} y={py + g.tuckLip} width={panels.left.width} height={panels.left.width} top />
-          <DustFlap x={panels.right.x} y={py + g.tuckLip} width={panels.right.width} height={panels.right.width} top />
-          <DustFlap x={panels.left.x} y={bodyBottom} width={panels.left.width} height={panels.left.width} top={false} />
-          <DustFlap x={panels.right.x} y={bodyBottom} width={panels.right.width} height={panels.right.width} top={false} />
+          <DustFlap {...leftTopDust} top fill={artwork.left?.dominantColor} />
+          <DustFlap {...rightTopDust} top fill={artwork.right?.dominantColor} />
+          <DustFlap {...leftBottomDust} top={false} fill={artwork.left?.dominantColor} />
+          <DustFlap {...rightBottomDust} top={false} fill={artwork.right?.dominantColor} />
           <polygon
-            points={`${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`}
-            className="cut-shape"
+            points={gluePoints}
+            className="flap-fill"
+            style={{ fill: artwork.right?.dominantColor ?? "none" }}
           />
+          <polyline points={gluePoints} className="cut-shape" />
         </g>
 
         <g id="cut-lines">
@@ -196,20 +243,18 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <line x1={bottom.x} y1={bottom.y + bottom.height} x2={bottom.x + bottom.width} y2={bottom.y + bottom.height} className="fold-line" />
         </g>
 
-        {showBleed && (
-          <g id="bleed-guides" data-preview-guide="bleed">
-            {faces.map(([face, rect]) => (
-              <rect
-                key={face}
-                x={rect.x - BLEED_MM}
-                y={rect.y - BLEED_MM}
-                width={rect.width + BLEED_MM * 2}
-                height={rect.height + BLEED_MM * 2}
-                className="bleed-line"
-              />
-            ))}
-          </g>
-        )}
+        <g id="bleed-guides" data-preview-guide="bleed" style={{ display: "none" }}>
+          {faces.map(([face, rect]) => (
+            <rect
+              key={face}
+              x={rect.x - BLEED_MM}
+              y={rect.y - BLEED_MM}
+              width={rect.width + BLEED_MM * 2}
+              height={rect.height + BLEED_MM * 2}
+              className="bleed-line"
+            />
+          ))}
+        </g>
 
         <g id="scale-check">
           <line x1={SAFE_MARGIN_MM} y1={paper.height - 8} x2={SAFE_MARGIN_MM + 50} y2={paper.height - 8} className="cut-line" />
