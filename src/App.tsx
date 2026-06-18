@@ -120,9 +120,6 @@ export default function App() {
         <div>
           <p className="eyebrow">Print · Cut · Fold</p>
           <h1>Tuckbox Studio</h1>
-          <p className="hero-copy">
-            Build an exact-size, artwork-ready card box. Your files stay in this browser.
-          </p>
         </div>
       </header>
 

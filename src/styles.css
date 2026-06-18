@@ -15,8 +15,8 @@ main { min-height: 100vh; }
 .hero {
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 34px clamp(24px, 5vw, 72px);
+  gap: 14px;
+  padding: 15px clamp(20px, 4vw, 48px);
   color: #f7f5ed;
   background:
     radial-gradient(circle at 80% 20%, rgba(199, 157, 85, .16), transparent 28%),
@@ -24,8 +24,8 @@ main { min-height: 100vh; }
   border-bottom: 5px solid #c99e56;
 }
 .brand-mark {
-  width: 64px;
-  height: 64px;
+  width: 40px;
+  height: 40px;
   position: relative;
   flex: 0 0 auto;
   border: 1px solid rgba(255,255,255,.32);
@@ -39,8 +39,7 @@ main { min-height: 100vh; }
 .brand-mark span:nth-child(2) { inset: 20px 8px 8px 20px; border-color: #f5f0e3; }
 .brand-mark span:nth-child(3) { inset: 8px 20px 20px 8px; border-color: rgba(245,240,227,.45); }
 .hero h1, h2, h3 { font-family: "Segoe UI", Arial, sans-serif; margin: 0; }
-.hero h1 { font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.04em; line-height: 1; }
-.hero-copy { margin: 10px 0 0; color: #bbc7c0; max-width: 650px; }
+.hero h1 { font-size: clamp(1.55rem, 2.6vw, 2.2rem); letter-spacing: -.04em; line-height: 1; }
 .eyebrow {
   margin: 0 0 5px;
   color: #9a7650;
@@ -163,8 +162,8 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   .paper-stage { min-height: 450px; }
 }
 @media (max-width: 600px) {
-  .hero { padding: 25px 20px; }
-  .brand-mark { width: 46px; height: 46px; }
+  .hero { padding: 13px 18px; }
+  .brand-mark { width: 36px; height: 36px; }
   .dimension-grid, .artwork-grid, .two-column { grid-template-columns: 1fr; }
   .control-section, .preview-column { padding-left: 20px; padding-right: 20px; }
   .preview-toolbar, .status-card, .export-card { align-items: start; }
