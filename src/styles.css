@@ -80,6 +80,8 @@ main { min-height: 100vh; }
 .segmented.compact { margin: 12px 0; }
 .segmented.compact button { padding: 6px; font-size: .78rem; }
 .dimension-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.closure-field { margin-top: 18px; }
+.closure-field .segmented { margin: 0; }
 .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field { display: grid; gap: 8px; color: #34473d; font-size: .8rem; font-weight: 700; }
 .field > span { display: flex; justify-content: space-between; align-items: baseline; }
@@ -129,6 +131,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .export-card strong { color: #f0d197; }
 .check-label { grid-column: 1 / -1; display: flex; gap: 8px; color: #bdc8c1; font-size: .74rem; }
 .check-label input { accent-color: #c99e56; }
+.light-check { margin: 0 0 16px; color: #53645b; }
 .export-actions { display: flex; gap: 9px; }
 .primary-button, .secondary-button { border: 0; padding: 11px 16px; font-weight: 800; font-size: .78rem; }
 .primary-button { background: #d1a75d; color: #172b22; }

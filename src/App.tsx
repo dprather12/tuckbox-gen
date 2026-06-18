@@ -15,6 +15,7 @@ import { trackEvent } from "./analytics";
 import type {
   ArtworkMap,
   ArtworkSettings,
+  BottomClosure,
   BoxDimensions,
   FaceName,
   Orientation,
@@ -33,6 +34,8 @@ export default function App() {
   });
   const [paperSize, setPaperSize] = useState<PaperSize>("letter");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
+  const [bottomClosure, setBottomClosure] = useState<BottomClosure>("tuck");
+  const [colorFlaps, setColorFlaps] = useState(true);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
   const [includeBleedInExport, setIncludeBleedInExport] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -46,12 +49,18 @@ export default function App() {
     }),
     [dimensions, unit]
   );
-  const rawGeometry = useMemo(() => calculateDieline(dimensionsMm), [dimensionsMm]);
+  const rawGeometry = useMemo(
+    () => calculateDieline(dimensionsMm, bottomClosure),
+    [dimensionsMm, bottomClosure]
+  );
   const paper = useMemo(
     () => resolvePaper(paperSize, orientation, rawGeometry.totalWidth, rawGeometry.totalHeight),
     [paperSize, orientation, rawGeometry]
   );
-  const geometry = useMemo(() => geometryForPage(dimensionsMm, paper), [dimensionsMm, paper]);
+  const geometry = useMemo(
+    () => geometryForPage(dimensionsMm, paper, bottomClosure),
+    [dimensionsMm, paper, bottomClosure]
+  );
   const dimensionsValid = Object.values(dimensionsMm).every(
     (value) => Number.isFinite(value) && value > 0
   );
@@ -157,6 +166,25 @@ export default function App() {
                 </label>
               ))}
             </div>
+            <label className="field closure-field">
+              <span>Bottom closure</span>
+              <div className="segmented compact">
+                <button
+                  className={bottomClosure === "tuck" ? "active" : ""}
+                  type="button"
+                  onClick={() => setBottomClosure("tuck")}
+                >
+                  Openable tuck
+                </button>
+                <button
+                  className={bottomClosure === "glued" ? "active" : ""}
+                  type="button"
+                  onClick={() => setBottomClosure("glued")}
+                >
+                  Glued closed
+                </button>
+              </div>
+            </label>
           </section>
 
           <section className="control-section">
@@ -194,6 +222,14 @@ export default function App() {
               </div>
             </div>
             <p className="section-copy">PNG, JPEG, or WebP. Each face can be cropped or stretched independently.</p>
+            <label className="check-label light-check">
+              <input
+                type="checkbox"
+                checked={!colorFlaps}
+                onChange={(event) => setColorFlaps(!event.target.checked)}
+              />
+              Leave tabs and dust flaps white
+            </label>
             <div className="artwork-grid">
               {faces.map((face) => (
                 <ArtworkControl
@@ -233,6 +269,7 @@ export default function App() {
                 paper={paper}
                 geometry={geometry}
                 artwork={artwork}
+                colorFlaps={colorFlaps}
               />
             </div>
           </div>

@@ -4,6 +4,7 @@ export type Orientation = "auto" | "portrait" | "landscape";
 export type ResolvedOrientation = Exclude<Orientation, "auto">;
 export type FaceName = "front" | "back" | "left" | "right" | "top" | "bottom";
 export type ImageFit = "crop" | "stretch";
+export type BottomClosure = "tuck" | "glued";
 
 export interface BoxDimensions {
   width: number;
@@ -47,6 +48,8 @@ export interface DielineGeometry {
   panels: Record<Exclude<FaceName, "top" | "bottom">, Rect>;
   top: Rect;
   bottom: Rect;
+  bottomUnderFlap?: Rect;
+  bottomClosure: BottomClosure;
   pageX: number;
   pageY: number;
 }

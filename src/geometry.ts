@@ -1,5 +1,6 @@
 import type {
   BoxDimensions,
+  BottomClosure,
   DielineGeometry,
   Orientation,
   Paper,
@@ -25,12 +26,17 @@ export function fromMillimeters(value: number, unit: Unit): number {
   return unit === "in" ? value / 25.4 : value;
 }
 
-export function calculateDieline(dimensions: BoxDimensions): Omit<DielineGeometry, "pageX" | "pageY"> {
+export function calculateDieline(
+  dimensions: BoxDimensions,
+  bottomClosure: BottomClosure = "tuck"
+): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
   const glueTab = Math.min(18, Math.max(8, d * 0.65));
   const tuckLip = Math.min(30, Math.max(9, d * 0.9));
-  const flapDepth = d + tuckLip;
-  const bodyY = flapDepth;
+  const topFlapDepth = d + tuckLip;
+  const bottomFlapDepth = bottomClosure === "tuck" ? d + tuckLip : d;
+  const flapDepth = topFlapDepth;
+  const bodyY = topFlapDepth;
 
   const back: Rect = { x: 0, y: bodyY, width: w, height: h };
   const left: Rect = { x: w, y: bodyY, width: d, height: h };
@@ -39,14 +45,19 @@ export function calculateDieline(dimensions: BoxDimensions): Omit<DielineGeometr
 
   return {
     totalWidth: 2 * w + 2 * d + glueTab,
-    totalHeight: h + 2 * flapDepth,
+    totalHeight: h + topFlapDepth + bottomFlapDepth,
     bodyY,
     glueTab,
     flapDepth,
     tuckLip,
     panels: { back, left, front, right },
     top: { x: 0, y: tuckLip, width: w, height: d },
-    bottom: { x: 0, y: bodyY + h, width: w, height: d }
+    bottom: { x: 0, y: bodyY + h, width: w, height: d },
+    bottomUnderFlap:
+      bottomClosure === "glued"
+        ? { x: w + d, y: bodyY + h, width: w, height: d * 0.72 }
+        : undefined,
+    bottomClosure
   };
 }
 
@@ -102,8 +113,12 @@ export function resolvePaper(
   });
 }
 
-export function geometryForPage(dimensions: BoxDimensions, paper: Paper): DielineGeometry {
-  const geometry = calculateDieline(dimensions);
+export function geometryForPage(
+  dimensions: BoxDimensions,
+  paper: Paper,
+  bottomClosure: BottomClosure = "tuck"
+): DielineGeometry {
+  const geometry = calculateDieline(dimensions, bottomClosure);
   return {
     ...geometry,
     pageX: (paper.width - geometry.totalWidth) / 2,

@@ -32,4 +32,16 @@ describe("geometry", () => {
   it("rejects a dieline that exceeds the safe printable area", () => {
     expect(fitsOnPaper(205, 260, getPaper("letter", "portrait"))).toBe(false);
   });
+
+  it("creates overlapping bottom flaps for a permanently glued closure", () => {
+    const result = calculateDieline({ width: 63.5, depth: 19.05, height: 88.9 }, "glued");
+    expect(result.bottomClosure).toBe("glued");
+    expect(result.bottomUnderFlap).toEqual({
+      x: 82.55,
+      y: result.bodyY + 88.9,
+      width: 63.5,
+      height: 19.05 * 0.72
+    });
+    expect(result.totalHeight).toBeCloseTo(88.9 + result.flapDepth + 19.05);
+  });
 });

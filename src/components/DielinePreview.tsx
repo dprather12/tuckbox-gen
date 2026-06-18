@@ -13,6 +13,7 @@ interface Props {
   paper: Paper;
   geometry: DielineGeometry;
   artwork: ArtworkMap;
+  colorFlaps: boolean;
 }
 
 function ArtworkImage({
@@ -94,7 +95,7 @@ function DustFlap({
 }
 
 export const DielinePreview = forwardRef<SVGSVGElement, Props>(
-  ({ paper, geometry, artwork }, ref) => {
+  ({ paper, geometry, artwork, colorFlaps }, ref) => {
     const rawId = useId().replace(/:/g, "");
     const g = geometry;
     const px = g.pageX;
@@ -107,6 +108,13 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     ) as DielineGeometry["panels"];
     const top = { ...g.top, x: g.top.x + px, y: g.top.y + py };
     const bottom = { ...g.bottom, x: g.bottom.x + px, y: g.bottom.y + py };
+    const bottomUnderFlap = g.bottomUnderFlap
+      ? {
+          ...g.bottomUnderFlap,
+          x: g.bottomUnderFlap.x + px,
+          y: g.bottomUnderFlap.y + py
+        }
+      : undefined;
     const faces: Array<[FaceName, Rect]> = [
       ["back", panels.back],
       ["left", panels.left],
@@ -120,6 +128,9 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const glueX = rightEdge;
     const topFlapPath = `M ${top.x + top.width} ${top.y} L ${top.x + top.width} ${top.y - g.tuckLip * 0.35} Q ${top.x + top.width / 2} ${top.y - g.tuckLip} ${top.x} ${top.y - g.tuckLip * 0.35} L ${top.x} ${top.y}`;
     const bottomFlapPath = `M ${bottom.x} ${bottom.y + bottom.height} L ${bottom.x} ${bottom.y + bottom.height + g.tuckLip * 0.35} Q ${bottom.x + bottom.width / 2} ${bottom.y + bottom.height + g.tuckLip} ${bottom.x + bottom.width} ${bottom.y + bottom.height + g.tuckLip * 0.35} L ${bottom.x + bottom.width} ${bottom.y + bottom.height}`;
+    const bottomUnderPath = bottomUnderFlap
+      ? `M ${bottomUnderFlap.x} ${bottomUnderFlap.y} L ${bottomUnderFlap.x + 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width - 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width} ${bottomUnderFlap.y}`
+      : "";
     const dustPoints = (rect: Rect, topSide: boolean) => {
       const inset = Math.min(rect.width * 0.2, 3);
       return topSide
@@ -192,29 +203,36 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <path
             d={`${topFlapPath} Z`}
             className="flap-fill"
-            style={{ fill: artwork.top?.dominantColor ?? "none" }}
+            style={{ fill: colorFlaps ? artwork.top?.dominantColor ?? "none" : "none" }}
           />
           <path
             d={topFlapPath}
             className="cut-shape"
           />
-          <path
-            d={`${bottomFlapPath} Z`}
-            className="flap-fill"
-            style={{ fill: artwork.bottom?.dominantColor ?? "none" }}
-          />
-          <path
-            d={bottomFlapPath}
-            className="cut-shape"
-          />
-          <DustFlap {...leftTopDust} top fill={artwork.left?.dominantColor} />
-          <DustFlap {...rightTopDust} top fill={artwork.right?.dominantColor} />
-          <DustFlap {...leftBottomDust} top={false} fill={artwork.left?.dominantColor} />
-          <DustFlap {...rightBottomDust} top={false} fill={artwork.right?.dominantColor} />
+          {g.bottomClosure === "tuck" && (
+            <>
+              <path
+                d={`${bottomFlapPath} Z`}
+                className="flap-fill"
+                style={{ fill: colorFlaps ? artwork.bottom?.dominantColor ?? "none" : "none" }}
+              />
+              <path d={bottomFlapPath} className="cut-shape" />
+            </>
+          )}
+          {bottomUnderFlap && (
+            <>
+              <path d={`${bottomUnderPath} Z`} className="flap-fill" style={{ fill: "#fff" }} />
+              <path d={bottomUnderPath} className="cut-shape" />
+            </>
+          )}
+          <DustFlap {...leftTopDust} top fill={colorFlaps ? artwork.left?.dominantColor : undefined} />
+          <DustFlap {...rightTopDust} top fill={colorFlaps ? artwork.right?.dominantColor : undefined} />
+          <DustFlap {...leftBottomDust} top={false} fill={colorFlaps ? artwork.left?.dominantColor : undefined} />
+          <DustFlap {...rightBottomDust} top={false} fill={colorFlaps ? artwork.right?.dominantColor : undefined} />
           <polygon
             points={gluePoints}
             className="flap-fill"
-            style={{ fill: artwork.right?.dominantColor ?? "none" }}
+            style={{ fill: colorFlaps ? artwork.right?.dominantColor ?? "none" : "none" }}
           />
           <polyline points={gluePoints} className="cut-shape" />
         </g>
@@ -225,8 +243,19 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <line x1={top.x + top.width} y1={top.y} x2={top.x + top.width} y2={py + g.bodyY} className="cut-line" />
           <line x1={bottom.x} y1={bottom.y} x2={bottom.x} y2={bottom.y + bottom.height} className="cut-line" />
           <line x1={bottom.x + bottom.width} y1={bottom.y} x2={bottom.x + bottom.width} y2={bottom.y + bottom.height} className="cut-line" />
+          {g.bottomClosure === "glued" && (
+            <line
+              x1={bottom.x}
+              y1={bottom.y + bottom.height}
+              x2={bottom.x + bottom.width}
+              y2={bottom.y + bottom.height}
+              className="cut-line"
+            />
+          )}
           <line x1={panels.front.x} y1={py + g.bodyY} x2={panels.front.x + panels.front.width} y2={py + g.bodyY} className="cut-line" />
-          <line x1={panels.front.x} y1={bodyBottom} x2={panels.front.x + panels.front.width} y2={bodyBottom} className="cut-line" />
+          {g.bottomClosure === "tuck" && (
+            <line x1={panels.front.x} y1={bodyBottom} x2={panels.front.x + panels.front.width} y2={bodyBottom} className="cut-line" />
+          )}
         </g>
 
         <g id="fold-lines">
@@ -240,7 +269,18 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             </g>
           ))}
           <line x1={top.x} y1={top.y} x2={top.x + top.width} y2={top.y} className="fold-line" />
-          <line x1={bottom.x} y1={bottom.y + bottom.height} x2={bottom.x + bottom.width} y2={bottom.y + bottom.height} className="fold-line" />
+          {g.bottomClosure === "tuck" && (
+            <line x1={bottom.x} y1={bottom.y + bottom.height} x2={bottom.x + bottom.width} y2={bottom.y + bottom.height} className="fold-line" />
+          )}
+          {bottomUnderFlap && (
+            <line
+              x1={bottomUnderFlap.x}
+              y1={bottomUnderFlap.y}
+              x2={bottomUnderFlap.x + bottomUnderFlap.width}
+              y2={bottomUnderFlap.y}
+              className="fold-line"
+            />
+          )}
         </g>
 
         <g id="bleed-guides" data-preview-guide="bleed" style={{ display: "none" }}>
