@@ -29,5 +29,10 @@ The workflow in `.github/workflows/deploy-pages.yml` runs whenever `main` is pus
 4. Upload only `dist/` as the GitHub Pages artifact.
 5. Deploy that artifact as the public website.
 
-After pushing the repository, open **Settings → Pages** on GitHub and select **GitHub Actions** as the source.
+Before the first successful deployment:
 
+1. Open **Settings → Pages** in the GitHub repository.
+2. Under **Build and deployment**, select **GitHub Actions** as the source.
+3. Open **Actions**, select the **Deploy to GitHub Pages** workflow, and rerun it if the initial run failed before Pages was enabled.
+
+GitHub must create the repository's Pages site before the deployment API will accept an artifact. A `Get Pages site failed: Not Found` message means the source has not yet been set to **GitHub Actions**.

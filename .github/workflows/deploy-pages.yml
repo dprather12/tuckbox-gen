@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -37,9 +37,6 @@ jobs:
 
       - name: Build production site
         run: npm run build
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
 
       - name: Upload production site
         uses: actions/upload-pages-artifact@v3
@@ -57,4 +54,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
