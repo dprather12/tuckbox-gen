@@ -232,7 +232,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <polygon
             points={gluePoints}
             className="flap-fill"
-            style={{ fill: colorFlaps ? artwork.right?.dominantColor ?? "none" : "none" }}
+            style={{ fill: "#fff" }}
           />
           <polyline points={gluePoints} className="cut-shape" />
         </g>

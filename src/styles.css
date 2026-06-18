@@ -126,13 +126,32 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .paper-stage.landscape .paper-shadow { width: min(100%, 720px); }
 .dieline-svg { display: block; width: 100%; height: auto; background: #fff; }
 .export-card { background: #172b22; color: #edf1ed; padding: 26px; border-top: 4px solid #c99e56; }
-.export-card { display: grid; grid-template-columns: 1.4fr auto; gap: 20px; align-items: end; }
+.export-card { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
 .export-card p { margin: 7px 0 0; color: #adbbb3; font-size: .78rem; }
 .export-card strong { color: #f0d197; }
 .check-label { grid-column: 1 / -1; display: flex; gap: 8px; color: #bdc8c1; font-size: .74rem; }
 .check-label input { accent-color: #c99e56; }
-.light-check { margin: 0 0 16px; color: #53645b; }
-.export-actions { display: flex; gap: 9px; }
+.white-flaps-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  color: #294638;
+  background: #e6ede8;
+  border: 1px solid #b9c8be;
+  border-radius: 6px;
+  font-size: .86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.white-flaps-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #315a46;
+}
+.export-actions { display: flex; justify-content: flex-start; gap: 9px; }
 .primary-button, .secondary-button { border: 0; padding: 11px 16px; font-weight: 800; font-size: .78rem; }
 .primary-button { background: #d1a75d; color: #172b22; }
 .secondary-button { background: transparent; color: #f1f4f1; border: 1px solid #718178; }

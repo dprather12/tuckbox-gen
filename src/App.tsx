@@ -37,7 +37,6 @@ export default function App() {
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>("tuck");
   const [colorFlaps, setColorFlaps] = useState(true);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
-  const [includeBleedInExport, setIncludeBleedInExport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -95,7 +94,7 @@ export default function App() {
     if (!svgRef.current || !fits) return;
     setExporting(true);
     try {
-      await downloadPdf(svgRef.current, paper, includeBleedInExport);
+      await downloadPdf(svgRef.current, paper, false);
       trackEvent("template_download", {
         format: "pdf",
         paper: paper.name,
@@ -222,7 +221,7 @@ export default function App() {
               </div>
             </div>
             <p className="section-copy">PNG, JPEG, or WebP. Each face can be cropped or stretched independently.</p>
-            <label className="check-label light-check">
+            <label className="white-flaps-option">
               <input
                 type="checkbox"
                 checked={!colorFlaps}
@@ -279,14 +278,6 @@ export default function App() {
               <h2>Download template</h2>
               <p>Print at <strong>Actual size / 100%</strong>. Disable “Fit to page” in the print dialog.</p>
             </div>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={includeBleedInExport}
-                onChange={(event) => setIncludeBleedInExport(event.target.checked)}
-              />
-              Include red bleed guides
-            </label>
             <div className="export-actions">
               <button
                 className="secondary-button"
@@ -294,7 +285,7 @@ export default function App() {
                 disabled={!fits}
                 onClick={() => {
                   if (!svgRef.current) return;
-                  downloadSvg(svgRef.current, includeBleedInExport);
+                  downloadSvg(svgRef.current, false);
                   trackEvent("template_download", {
                     format: "svg",
                     paper: paper.name,
