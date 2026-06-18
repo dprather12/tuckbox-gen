@@ -228,15 +228,6 @@ export default function App() {
                 <h2>Panel artwork</h2>
               </div>
             </div>
-            <p className="section-copy">PNG, JPEG, or WebP. Each face can be cropped or stretched independently.</p>
-            <label className="wrap-option">
-              <input
-                type="checkbox"
-                checked={useWrapArtwork}
-                onChange={(event) => setUseWrapArtwork(event.target.checked)}
-              />
-              Use one image around the front, back, and sides
-            </label>
             <label className="white-flaps-option">
               <input
                 type="checkbox"
@@ -244,6 +235,14 @@ export default function App() {
                 onChange={(event) => setColorFlaps(!event.target.checked)}
               />
               Leave tabs and dust flaps white
+            </label>
+            <label className="white-flaps-option wrap-option">
+              <input
+                type="checkbox"
+                checked={useWrapArtwork}
+                onChange={(event) => setUseWrapArtwork(event.target.checked)}
+              />
+              Use one image around the front, back, and sides
             </label>
             <div className="artwork-grid">
               {useWrapArtwork && (

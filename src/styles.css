@@ -56,8 +56,8 @@ main { min-height: 100vh; }
   min-height: calc(100vh - 137px);
 }
 .controls { background: #f8f7f2; border-right: 1px solid #ced5cf; }
-.control-section { padding: 34px clamp(24px, 4vw, 50px); border-bottom: 1px solid #d9ded9; }
-.section-heading { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+.control-section { padding: 28px clamp(24px, 4vw, 50px); border-bottom: 1px solid #d9ded9; }
+.section-heading { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; }
 .section-heading h2, .preview-toolbar h2, .export-card h2 { font-size: 1.4rem; letter-spacing: -.025em; }
 .segmented {
   display: grid;
@@ -144,22 +144,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   font-weight: 700;
   cursor: pointer;
 }
-.wrap-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 12px;
-  color: #294638;
-  font-size: .82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.wrap-option input {
-  width: 17px;
-  height: 17px;
-  margin: 0;
-  accent-color: #315a46;
-}
+.wrap-option { margin-top: -6px; }
 .wrap-art-card { grid-column: 1 / -1; }
 .wrap-art-card .segmented { grid-template-columns: repeat(3, 1fr); }
 .white-flaps-option input {
