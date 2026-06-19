@@ -1,5 +1,5 @@
 import { forwardRef, useId } from "react";
-import { BLEED_MM, SAFE_MARGIN_MM } from "../geometry";
+import { BLEED_MM, MAX_FLAP_MM, SAFE_MARGIN_MM } from "../geometry";
 import { ArtworkImage, FaceText } from "./FaceArtwork";
 import type {
   ArtworkMap,
@@ -102,16 +102,18 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const bottomUnderPath = bottomUnderFlap
       ? `M ${bottomUnderFlap.x} ${bottomUnderFlap.y} L ${bottomUnderFlap.x + 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width - 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width} ${bottomUnderFlap.y}`
       : "";
+    const dustFlapDepth = Math.min(MAX_FLAP_MM, panels.left.width);
     const dustPoints = (rect: Rect, topSide: boolean) => {
       const inset = Math.min(rect.width * 0.2, 3);
       return topSide
         ? `${rect.x},${rect.y + rect.height} ${rect.x + inset},${rect.y} ${rect.x + rect.width - inset},${rect.y} ${rect.x + rect.width},${rect.y + rect.height}`
         : `${rect.x + rect.width},${rect.y} ${rect.x + rect.width - inset},${rect.y + rect.height} ${rect.x + inset},${rect.y + rect.height} ${rect.x},${rect.y}`;
     };
-    const leftTopDust = { x: panels.left.x, y: py + g.tuckLip, width: panels.left.width, height: panels.left.width };
-    const rightTopDust = { x: panels.right.x, y: py + g.tuckLip, width: panels.right.width, height: panels.right.width };
-    const leftBottomDust = { x: panels.left.x, y: bodyBottom, width: panels.left.width, height: panels.left.width };
-    const rightBottomDust = { x: panels.right.x, y: bodyBottom, width: panels.right.width, height: panels.right.width };
+    const topDustY = py + g.bodyY - dustFlapDepth;
+    const leftTopDust = { x: panels.left.x, y: topDustY, width: panels.left.width, height: dustFlapDepth };
+    const rightTopDust = { x: panels.right.x, y: topDustY, width: panels.right.width, height: dustFlapDepth };
+    const leftBottomDust = { x: panels.left.x, y: bodyBottom, width: panels.left.width, height: dustFlapDepth };
+    const rightBottomDust = { x: panels.right.x, y: bodyBottom, width: panels.right.width, height: dustFlapDepth };
     const gluePoints = `${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
     const imageForFace = (face: FaceName) =>
       (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;

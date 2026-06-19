@@ -399,7 +399,11 @@ export default function App() {
           <section className="export-card">
             <div>
               <h2>Download template</h2>
-              <p className="print-instruction">Print at Actual size / 100%. Disable “Fit to page” in the print dialog.</p>
+              <p className="print-instruction">
+                Print at Actual size / 100% and disable “Fit to page.” First print a sample
+                sheet and measure the 50 mm scale-check line. If it is not exactly 50 mm,
+                adjust your printer scale by 50 ÷ measured length × 100%.
+              </p>
             </div>
             <div className="export-actions">
               <button

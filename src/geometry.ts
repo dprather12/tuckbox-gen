@@ -12,6 +12,7 @@ import type {
 
 export const BLEED_MM = 3;
 export const SAFE_MARGIN_MM = 6.35;
+export const MAX_FLAP_MM = 15;
 
 const PAPER_SIZES: Record<PaperSize, { width: number; height: number; name: string }> = {
   letter: { width: 215.9, height: 279.4, name: "US Letter" },
@@ -32,7 +33,7 @@ export function calculateDieline(
 ): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
   const glueTab = w * 0.25;
-  const tuckLip = Math.min(30, Math.max(9, d * 0.9));
+  const tuckLip = Math.min(MAX_FLAP_MM, Math.max(9, d * 0.9));
   const topFlapDepth = d + tuckLip;
   const bottomFlapDepth = bottomClosure === "tuck" ? d + tuckLip : d;
   const flapDepth = topFlapDepth;

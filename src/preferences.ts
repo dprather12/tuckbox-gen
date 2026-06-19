@@ -32,7 +32,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   paperSize: "letter",
   orientation: "landscape",
-  bottomClosure: "tuck",
+  bottomClosure: "glued",
   colorFlaps: true,
   showPrintLines: true,
   showThumbNotch: true,
