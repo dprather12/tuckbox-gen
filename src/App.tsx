@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArtworkControl } from "./components/ArtworkControl";
+import { AssembledBoxPreview } from "./components/AssembledBoxPreview";
 import { DielinePreview } from "./components/DielinePreview";
 import {
   BLEED_MM,
@@ -335,22 +336,35 @@ export default function App() {
               <h2>Print preview</h2>
             </div>
           </div>
-          <div className="preview-paper-controls">
-            <label className="field">
-              <span>Paper</span>
-              <select value={paperSize} onChange={(event) => setPaperSize(event.target.value as PaperSize)}>
-                <option value="letter">US Letter</option>
-                <option value="a4">A4</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Orientation</span>
-              <select value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)}>
-                <option value="auto">Auto</option>
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
-              </select>
-            </label>
+          <div className="preview-options-row">
+            <div className="preview-paper-controls">
+              <label className="field">
+                <span>Paper</span>
+                <select value={paperSize} onChange={(event) => setPaperSize(event.target.value as PaperSize)}>
+                  <option value="letter">US Letter</option>
+                  <option value="a4">A4</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Orientation</span>
+                <select value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)}>
+                  <option value="auto">Auto</option>
+                  <option value="portrait">Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+              </label>
+            </div>
+            {dimensionsValid && (
+              <AssembledBoxPreview
+                dimensions={dimensionsMm}
+                artwork={artwork}
+                faceModes={faceModes}
+                faceText={faceText}
+                showThumbNotch={showThumbNotch}
+                useWrapArtwork={useWrapArtwork}
+                wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
+              />
+            )}
           </div>
           {!dimensionsValid ? (
             <div className="status-card error">Enter positive values for all three box dimensions.</div>

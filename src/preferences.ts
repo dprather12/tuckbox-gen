@@ -108,4 +108,3 @@ export function savePreferences(preferences: Preferences): void {
     // Private browsing or storage limits should not prevent using the app.
   }
 }
-
