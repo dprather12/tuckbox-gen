@@ -24,10 +24,9 @@ Vite writes the static production site to `dist/`. That directory contains the H
 The workflow in `.github/workflows/deploy-pages.yml` runs only when manually started from the repository's **Actions** tab:
 
 1. Install the exact dependencies from `package-lock.json`.
-2. Run the test suite.
-3. Build the production site into `dist/`.
-4. Upload only `dist/` as the GitHub Pages artifact.
-5. Deploy that artifact as the public website.
+2. Build the production site into `dist/`.
+3. Upload only `dist/` as the GitHub Pages artifact.
+4. Deploy that artifact as the public website.
 
 Before the first successful deployment:
 
