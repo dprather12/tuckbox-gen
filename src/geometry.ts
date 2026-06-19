@@ -31,7 +31,7 @@ export function calculateDieline(
   bottomClosure: BottomClosure = "tuck"
 ): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
-  const glueTab = Math.min(18, Math.max(8, d * 0.65));
+  const glueTab = w * 0.25;
   const tuckLip = Math.min(30, Math.max(9, d * 0.9));
   const topFlapDepth = d + tuckLip;
   const bottomFlapDepth = bottomClosure === "tuck" ? d + tuckLip : d;

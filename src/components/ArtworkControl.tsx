@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type {
   ArtworkSettings,
   FaceContentMode,
@@ -26,16 +27,21 @@ const LABELS: Record<FaceName, string> = {
   bottom: "Bottom"
 };
 
-const DEFAULT_TEXT: TextSettings = {
-  content: "",
-  fontFamily: "Arial",
-  fontSize: 16,
-  color: "#17231d",
-  align: "center",
-  bold: false,
-  italic: false,
-  underline: false
-};
+function defaultText(face: FaceName): TextSettings {
+  return {
+    content: "",
+    html: "",
+    fontFamily: "Arial",
+    fontSize: 16,
+    color: "#17231d",
+    align: "center",
+    orientation: face === "left" || face === "right" ? "vertical" : "horizontal",
+    mirrorVertical: false,
+    bold: false,
+    italic: false,
+    underline: false
+  };
+}
 
 export function ArtworkControl({
   face,
@@ -47,6 +53,25 @@ export function ArtworkControl({
   text,
   onTextChange
 }: Props) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const fontSizeRef = useRef<HTMLInputElement>(null);
+  const selectionRef = useRef<Range | null>(null);
+  const faceDefaults = face === "wrap" ? undefined : defaultText(face);
+  const textSettings = text ?? faceDefaults;
+  const [fontSizeInput, setFontSizeInput] = useState(String(textSettings?.fontSize ?? 16));
+
+  useEffect(() => {
+    if (!editorRef.current || face === "wrap") return;
+    const nextHtml = text?.html ?? text?.content ?? "";
+    if (editorRef.current.innerHTML !== nextHtml) {
+      editorRef.current.innerHTML = nextHtml;
+    }
+  }, [face, text?.content, text?.html]);
+
+  useEffect(() => {
+    setFontSizeInput(String(textSettings?.fontSize ?? 16));
+  }, [textSettings?.fontSize]);
+
   const handleFile = (file?: File) => {
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
@@ -90,15 +115,85 @@ export function ArtworkControl({
   };
 
   const patchText = (next: Partial<TextSettings>) => {
-    onTextChange?.({ ...(text ?? DEFAULT_TEXT), ...next });
+    if (face === "wrap") return;
+    onTextChange?.({ ...defaultText(face), ...text, ...next });
   };
 
-  const hasContent = mode === "text" ? Boolean(text?.content) : Boolean(artwork);
+  const syncEditor = (settings?: Partial<TextSettings>) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    patchText({
+      html: editor.innerHTML,
+      content: editor.innerText.replace(/\u00a0/g, " "),
+      ...settings
+    });
+    saveSelection();
+  };
+
+  const saveSelection = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      selectionRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || !selectionRef.current) return;
+    selection.removeAllRanges();
+    selection.addRange(selectionRef.current);
+  };
+
+  const applyCommand = (
+    command: string,
+    value?: string,
+    settings?: Partial<TextSettings>
+  ) => {
+    editorRef.current?.focus();
+    restoreSelection();
+    document.execCommand(command, false, value);
+    syncEditor(settings);
+  };
+
+  const applyFontSize = (fontSize: number, returnToInput = true) => {
+    const input = fontSizeRef.current;
+    const editor = editorRef.current;
+    const range = selectionRef.current?.cloneRange();
+    if (!editor || !range || range.collapsed || !editor.contains(range.commonAncestorContainer)) {
+      if (returnToInput) requestAnimationFrame(() => input?.focus());
+      return;
+    }
+
+    const span = document.createElement("span");
+    span.style.fontSize = `${fontSize}pt`;
+    span.appendChild(range.extractContents());
+    range.insertNode(span);
+
+    const selection = window.getSelection();
+    const selectedRange = document.createRange();
+    selectedRange.selectNodeContents(span);
+    selection?.removeAllRanges();
+    selection?.addRange(selectedRange);
+    selectionRef.current = selectedRange.cloneRange();
+
+    syncEditor();
+    if (returnToInput) requestAnimationFrame(() => input?.focus());
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
+  };
+
+  const hasContent = mode === "text" ? Boolean(text?.content.trim()) : Boolean(artwork);
 
   return (
     <article className={`art-card ${hasContent ? "has-art" : ""} ${allowRepeat ? "wrap-art-card" : ""}`}>
       <div className="art-card-heading">
-        <h3>{face === "wrap" ? "Wraparound body" : LABELS[face]}</h3>
+        <h3>{face === "wrap" ? "Wrap image" : LABELS[face]}</h3>
         {mode === "image" && artwork && (
           <button className="text-button danger" type="button" onClick={() => onChange(face)}>
             Remove
@@ -148,28 +243,10 @@ export function ArtworkControl({
             <>
               <p className="file-name" title={artwork.name}>{artwork.name}</p>
               <div className="segmented compact">
-                <button
-                  className={artwork.fit === "crop" ? "active" : ""}
-                  type="button"
-                  onClick={() => patch({ fit: "crop" })}
-                >
-                  Crop
-                </button>
-                <button
-                  className={artwork.fit === "stretch" ? "active" : ""}
-                  type="button"
-                  onClick={() => patch({ fit: "stretch" })}
-                >
-                  Stretch
-                </button>
+                <button className={artwork.fit === "crop" ? "active" : ""} type="button" onClick={() => patch({ fit: "crop" })}>Crop</button>
+                <button className={artwork.fit === "stretch" ? "active" : ""} type="button" onClick={() => patch({ fit: "stretch" })}>Stretch</button>
                 {allowRepeat && (
-                  <button
-                    className={artwork.fit === "repeat" ? "active" : ""}
-                    type="button"
-                    onClick={() => patch({ fit: "repeat" })}
-                  >
-                    Repeat
-                  </button>
+                  <button className={artwork.fit === "repeat" ? "active" : ""} type="button" onClick={() => patch({ fit: "repeat" })}>Repeat</button>
                 )}
               </div>
 
@@ -177,34 +254,15 @@ export function ArtworkControl({
                 <div className="range-grid">
                   <label>
                     <span>Zoom <output>{artwork.zoom.toFixed(1)}×</output></span>
-                    <input
-                      type="range"
-                      min="1"
-                      max="3"
-                      step="0.1"
-                      value={artwork.zoom}
-                      onChange={(event) => patch({ zoom: Number(event.target.value) })}
-                    />
+                    <input type="range" min="1" max="3" step="0.1" value={artwork.zoom} onChange={(event) => patch({ zoom: Number(event.target.value) })} />
                   </label>
                   <label>
                     <span>Horizontal <output>{artwork.offsetX}%</output></span>
-                    <input
-                      type="range"
-                      min="-100"
-                      max="100"
-                      value={artwork.offsetX}
-                      onChange={(event) => patch({ offsetX: Number(event.target.value) })}
-                    />
+                    <input type="range" min="-100" max="100" value={artwork.offsetX} onChange={(event) => patch({ offsetX: Number(event.target.value) })} />
                   </label>
                   <label>
                     <span>Vertical <output>{artwork.offsetY}%</output></span>
-                    <input
-                      type="range"
-                      min="-100"
-                      max="100"
-                      value={artwork.offsetY}
-                      onChange={(event) => patch({ offsetY: Number(event.target.value) })}
-                    />
+                    <input type="range" min="-100" max="100" value={artwork.offsetY} onChange={(event) => patch({ offsetY: Number(event.target.value) })} />
                   </label>
                 </div>
               )}
@@ -213,19 +271,59 @@ export function ArtworkControl({
         </>
       )}
 
-      {mode === "text" && face !== "wrap" && (
+      {mode === "text" && face !== "wrap" && textSettings && (
         <div className="text-editor">
-          <textarea
+          <div className="segmented compact text-orientation">
+            <button
+              className={textSettings.orientation === "horizontal" ? "active" : ""}
+              type="button"
+              onClick={() => patchText({ orientation: "horizontal" })}
+            >
+              Horizontal
+            </button>
+            <button
+              className={textSettings.orientation === "vertical" ? "active" : ""}
+              type="button"
+              onClick={() => patchText({ orientation: "vertical" })}
+            >
+              Vertical
+            </button>
+          </div>
+          {textSettings.orientation === "vertical" && (
+            <label className="mirror-text-option">
+              <input
+                type="checkbox"
+                checked={textSettings.mirrorVertical}
+                onChange={(event) => patchText({ mirrorVertical: event.target.checked })}
+              />
+              Read from the opposite direction
+            </label>
+          )}
+          <div
+            ref={editorRef}
+            className="rich-text-input"
+            contentEditable
+            suppressContentEditableWarning
+            role="textbox"
+            aria-multiline="true"
             aria-label={`${LABELS[face]} text`}
-            placeholder="Enter text for this face"
-            value={text?.content ?? ""}
-            onChange={(event) => patchText({ content: event.target.value })}
+            data-placeholder="Enter text for this face"
+            onInput={() => syncEditor()}
+            onKeyUp={saveSelection}
+            onMouseUp={saveSelection}
+            onFocus={saveSelection}
+            onPaste={handlePaste}
           />
           <div className="text-format-row">
             <select
               aria-label="Font"
-              value={text?.fontFamily ?? DEFAULT_TEXT.fontFamily}
-              onChange={(event) => patchText({ fontFamily: event.target.value })}
+              value={textSettings.fontFamily}
+              onMouseDown={saveSelection}
+              onChange={(event) => {
+                applyCommand("fontName", event.target.value, {
+                  fontFamily: event.target.value
+                });
+              }}
             >
               <option value="Arial">Arial</option>
               <option value="Georgia">Georgia</option>
@@ -235,12 +333,39 @@ export function ArtworkControl({
             </select>
             <label className="text-size">
               <input
+                ref={fontSizeRef}
                 aria-label="Font size"
                 type="number"
                 min="6"
                 max="72"
-                value={text?.fontSize ?? DEFAULT_TEXT.fontSize}
-                onChange={(event) => patchText({ fontSize: Math.max(6, Number(event.target.value)) })}
+                step="1"
+                value={fontSizeInput}
+                onMouseDown={saveSelection}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setFontSizeInput(value);
+                  const parsed = Number(value);
+                  if (Number.isFinite(parsed) && parsed >= 6 && parsed <= 72) {
+                    applyFontSize(parsed);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    const parsed = Number(event.currentTarget.value);
+                    if (Number.isFinite(parsed)) {
+                      const fontSize = Math.min(72, Math.max(6, parsed));
+                      setFontSizeInput(String(fontSize));
+                      applyFontSize(fontSize, false);
+                    }
+                    editorRef.current?.focus();
+                    restoreSelection();
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    editorRef.current?.focus();
+                    restoreSelection();
+                  }
+                }}
               />
               <span>pt</span>
             </label>
@@ -248,47 +373,35 @@ export function ArtworkControl({
               className="color-input"
               aria-label="Text color"
               type="color"
-              value={text?.color ?? DEFAULT_TEXT.color}
-              onChange={(event) => patchText({ color: event.target.value })}
+              value={textSettings.color}
+              onMouseDown={saveSelection}
+              onChange={(event) => {
+                applyCommand("foreColor", event.target.value, {
+                  color: event.target.value
+                });
+              }}
             />
           </div>
           <div className="text-toolbar" aria-label="Text formatting">
-            <button
-              className={text?.bold ? "active" : ""}
-              type="button"
-              aria-label="Bold"
-              onClick={() => patchText({ bold: !text?.bold })}
-            >
-              <strong>B</strong>
-            </button>
-            <button
-              className={text?.italic ? "active" : ""}
-              type="button"
-              aria-label="Italic"
-              onClick={() => patchText({ italic: !text?.italic })}
-            >
-              <em>I</em>
-            </button>
-            <button
-              className={text?.underline ? "active" : ""}
-              type="button"
-              aria-label="Underline"
-              onClick={() => patchText({ underline: !text?.underline })}
-            >
-              <u>U</u>
-            </button>
+            <button type="button" aria-label="Bold" onMouseDown={(event) => { event.preventDefault(); applyCommand("bold"); }}><strong>B</strong></button>
+            <button type="button" aria-label="Italic" onMouseDown={(event) => { event.preventDefault(); applyCommand("italic"); }}><em>I</em></button>
+            <button type="button" aria-label="Underline" onMouseDown={(event) => { event.preventDefault(); applyCommand("underline"); }}><u>U</u></button>
             {(["left", "center", "right"] as const).map((align) => (
               <button
                 key={align}
-                className={(text?.align ?? DEFAULT_TEXT.align) === align ? "active" : ""}
+                className={textSettings.align === align ? "active" : ""}
                 type="button"
                 aria-label={`Align ${align}`}
-                onClick={() => patchText({ align })}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  patchText({ align });
+                }}
               >
                 <span className={`align-icon ${align}`}>≡</span>
               </button>
             ))}
           </div>
+          <p className="selection-hint">Select text before applying font, size, color, or style.</p>
         </div>
       )}
     </article>

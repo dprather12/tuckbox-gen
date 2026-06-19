@@ -7,6 +7,7 @@ export type ImageFit = "crop" | "stretch" | "repeat";
 export type BottomClosure = "tuck" | "glued";
 export type FaceContentMode = "image" | "text";
 export type TextAlignment = "left" | "center" | "right";
+export type TextOrientation = "horizontal" | "vertical";
 
 export interface BoxDimensions {
   width: number;
@@ -30,10 +31,13 @@ export type ArtworkMap = Partial<Record<FaceName, ArtworkSettings>>;
 
 export interface TextSettings {
   content: string;
+  html: string;
   fontFamily: string;
   fontSize: number;
   color: string;
   align: TextAlignment;
+  orientation: TextOrientation;
+  mirrorVertical: boolean;
   bold: boolean;
   italic: boolean;
   underline: boolean;

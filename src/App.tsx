@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArtworkControl } from "./components/ArtworkControl";
 import { DielinePreview } from "./components/DielinePreview";
 import {
@@ -12,6 +12,7 @@ import {
 } from "./geometry";
 import { downloadPdf, downloadSvg } from "./export";
 import { trackEvent } from "./analytics";
+import { loadPreferences, savePreferences } from "./preferences";
 import type {
   ArtworkMap,
   ArtworkSettings,
@@ -30,23 +31,51 @@ import type {
 const faces: FaceName[] = ["front", "back", "left", "right", "top", "bottom"];
 
 export default function App() {
-  const [unit, setUnit] = useState<Unit>("in");
-  const [dimensions, setDimensions] = useState<BoxDimensions>({
-    width: 2.5,
-    depth: 0.75,
-    height: 3.5
-  });
-  const [paperSize, setPaperSize] = useState<PaperSize>("letter");
-  const [orientation, setOrientation] = useState<Orientation>("landscape");
-  const [bottomClosure, setBottomClosure] = useState<BottomClosure>("tuck");
-  const [colorFlaps, setColorFlaps] = useState(true);
+  const [initialPreferences] = useState(loadPreferences);
+  const [unit, setUnit] = useState<Unit>(initialPreferences.unit);
+  const [dimensions, setDimensions] = useState<BoxDimensions>(initialPreferences.dimensions);
+  const [paperSize, setPaperSize] = useState<PaperSize>(initialPreferences.paperSize);
+  const [orientation, setOrientation] = useState<Orientation>(initialPreferences.orientation);
+  const [bottomClosure, setBottomClosure] = useState<BottomClosure>(initialPreferences.bottomClosure);
+  const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
+  const [showPrintLines, setShowPrintLines] = useState(initialPreferences.showPrintLines);
+  const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
+  const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
-  const [faceModes, setFaceModes] = useState<FaceModeMap>({});
+  const [faceModes, setFaceModes] = useState<FaceModeMap>(initialPreferences.faceModes);
   const [faceText, setFaceText] = useState<TextMap>({});
-  const [useWrapArtwork, setUseWrapArtwork] = useState(false);
+  const [useWrapArtwork, setUseWrapArtwork] = useState(initialPreferences.useWrapArtwork);
   const [wrapArtwork, setWrapArtwork] = useState<ArtworkSettings>();
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    savePreferences({
+      unit,
+      dimensions,
+      paperSize,
+      orientation,
+      bottomClosure,
+      colorFlaps,
+      showPrintLines,
+      showThumbNotch,
+      showMoreSettings,
+      useWrapArtwork,
+      faceModes
+    });
+  }, [
+    unit,
+    dimensions,
+    paperSize,
+    orientation,
+    bottomClosure,
+    colorFlaps,
+    showPrintLines,
+    showThumbNotch,
+    showMoreSettings,
+    useWrapArtwork,
+    faceModes
+  ]);
 
   const dimensionsMm = useMemo(
     () => ({
@@ -226,22 +255,53 @@ export default function App() {
                 <h2>Panel artwork</h2>
               </div>
             </div>
-            <label className="white-flaps-option">
-              <input
-                type="checkbox"
-                checked={!colorFlaps}
-                onChange={(event) => setColorFlaps(!event.target.checked)}
-              />
-              Leave tabs and dust flaps white
-            </label>
-            <label className="white-flaps-option wrap-option">
-              <input
-                type="checkbox"
-                checked={useWrapArtwork}
-                onChange={(event) => setUseWrapArtwork(event.target.checked)}
-              />
-              Use one image around the front, back, and sides
-            </label>
+            <div className="more-settings">
+              <button
+                className="more-settings-button"
+                type="button"
+                aria-expanded={showMoreSettings}
+                onClick={() => setShowMoreSettings((current) => !current)}
+              >
+                <span>More Settings</span>
+                <span aria-hidden="true">{showMoreSettings ? "−" : "+"}</span>
+              </button>
+              {showMoreSettings && (
+                <div className="more-settings-content">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={useWrapArtwork}
+                      onChange={(event) => setUseWrapArtwork(event.target.checked)}
+                    />
+                    Use one image to wrap around the front, back and sides
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!colorFlaps}
+                      onChange={(event) => setColorFlaps(!event.target.checked)}
+                    />
+                    Leave tabs and dust flaps white
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={showPrintLines}
+                      onChange={(event) => setShowPrintLines(event.target.checked)}
+                    />
+                    Show fold and cut lines
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={showThumbNotch}
+                      onChange={(event) => setShowThumbNotch(event.target.checked)}
+                    />
+                    Include front thumb cutout
+                  </label>
+                </div>
+              )}
+            </div>
             <div className="artwork-grid">
               {useWrapArtwork && (
                 <ArtworkControl
@@ -292,7 +352,6 @@ export default function App() {
               </select>
             </label>
           </div>
-
           {!dimensionsValid ? (
             <div className="status-card error">Enter positive values for all three box dimensions.</div>
           ) : !fits ? (
@@ -315,6 +374,8 @@ export default function App() {
                 faceModes={faceModes}
                 faceText={faceText}
                 colorFlaps={colorFlaps}
+                showPrintLines={showPrintLines}
+                showThumbNotch={showThumbNotch}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
               />
@@ -324,7 +385,7 @@ export default function App() {
           <section className="export-card">
             <div>
               <h2>Download template</h2>
-              <p>Print at <strong>Actual size / 100%</strong>. Disable “Fit to page” in the print dialog.</p>
+              <p className="print-instruction">Print at Actual size / 100%. Disable “Fit to page” in the print dialog.</p>
             </div>
             <div className="export-actions">
               <button

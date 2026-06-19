@@ -19,6 +19,8 @@ interface Props {
   faceModes: FaceModeMap;
   faceText: TextMap;
   colorFlaps: boolean;
+  showPrintLines: boolean;
+  showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
 }
@@ -80,7 +82,8 @@ function DustFlap({
   width,
   height,
   top,
-  fill
+  fill,
+  showOutline
 }: {
   x: number;
   y: number;
@@ -88,6 +91,7 @@ function DustFlap({
   height: number;
   top: boolean;
   fill?: string;
+  showOutline: boolean;
 }) {
   const inset = Math.min(width * 0.2, 3);
   const points = top
@@ -96,42 +100,144 @@ function DustFlap({
   return (
     <g>
       <polygon points={points} className="flap-fill" style={{ fill: fill ?? "none" }} />
-      <polyline points={points} className="cut-shape" />
+      {showOutline && <polyline points={points} className="cut-shape" />}
     </g>
   );
 }
 
-function wrapText(content: string, maxCharacters: number): string[] {
-  const lines: string[] = [];
-  content.split(/\r?\n/).forEach((paragraph) => {
-    if (!paragraph) {
-      lines.push("");
+interface RichStyle {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+
+interface RichPiece {
+  text: string;
+  style: RichStyle;
+}
+
+function parseFontSize(value: string, fallback: number): number {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (value.endsWith("px")) return parsed * 0.75;
+  return parsed;
+}
+
+function richPieces(settings: TextSettings): RichPiece[] {
+  const base: RichStyle = {
+    fontFamily: settings.fontFamily,
+    fontSize: settings.fontSize,
+    color: settings.color,
+    bold: settings.bold,
+    italic: settings.italic,
+    underline: settings.underline
+  };
+  const html = settings.html || settings.content.replace(/\n/g, "<br>");
+  const documentNode = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const pieces: RichPiece[] = [];
+
+  const visit = (node: Node, inherited: RichStyle) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? "";
+      if (text) pieces.push({ text, style: inherited });
+      return;
+    }
+    if (!(node instanceof HTMLElement)) return;
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === "br") {
+      pieces.push({ text: "\n", style: inherited });
       return;
     }
 
-    const words = paragraph.split(/\s+/);
-    let line = "";
-    words.forEach((word) => {
-      if (word.length > maxCharacters) {
-        if (line) {
-          lines.push(line);
-          line = "";
-        }
-        for (let index = 0; index < word.length; index += maxCharacters) {
-          lines.push(word.slice(index, index + maxCharacters));
-        }
+    const style = { ...inherited };
+    if (tag === "b" || tag === "strong" || node.style.fontWeight === "bold" || Number(node.style.fontWeight) >= 600) style.bold = true;
+    if (tag === "i" || tag === "em" || node.style.fontStyle === "italic") style.italic = true;
+    if (tag === "u" || node.style.textDecoration.includes("underline")) style.underline = true;
+    if (tag === "font") {
+      style.color = node.getAttribute("color") || style.color;
+      style.fontFamily = node.getAttribute("face") || style.fontFamily;
+    }
+    if (node.style.color) style.color = node.style.color;
+    if (node.style.fontFamily) style.fontFamily = node.style.fontFamily.replace(/["']/g, "");
+    if (node.style.fontSize) style.fontSize = parseFontSize(node.style.fontSize, style.fontSize);
+
+    const block = tag === "div" || tag === "p";
+    if (block && pieces.length && !pieces.at(-1)?.text.endsWith("\n")) {
+      pieces.push({ text: "\n", style });
+    }
+    node.childNodes.forEach((child) => visit(child, style));
+    if (block && !pieces.at(-1)?.text.endsWith("\n")) {
+      pieces.push({ text: "\n", style });
+    }
+  };
+
+  documentNode.body.firstElementChild?.childNodes.forEach((node) => visit(node, base));
+  if (pieces.at(-1)?.text === "\n") pieces.pop();
+  return pieces;
+}
+
+function pieceWidth(piece: RichPiece): number {
+  const fontSizeMm = piece.style.fontSize * 0.352778;
+  return [...piece.text].reduce(
+    (width, character) =>
+      width + fontSizeMm * (character === " " ? 0.33 : 0.55) * (piece.style.bold ? 1.04 : 1),
+    0
+  );
+}
+
+function layoutRichText(pieces: RichPiece[], maxWidth: number): RichPiece[][] {
+  const lines: RichPiece[][] = [[]];
+  let width = 0;
+
+  const append = (piece: RichPiece) => {
+    const line = lines.at(-1)!;
+    const previous = line.at(-1);
+    if (previous && JSON.stringify(previous.style) === JSON.stringify(piece.style)) {
+      previous.text += piece.text;
+    } else {
+      line.push({ ...piece });
+    }
+  };
+
+  pieces.forEach((piece) => {
+    piece.text.split(/(\n|\s+)/).filter(Boolean).forEach((token) => {
+      if (token === "\n") {
+        lines.push([]);
+        width = 0;
         return;
       }
-      const candidate = line ? `${line} ${word}` : word;
-      if (candidate.length > maxCharacters && line) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = candidate;
+
+      const tokenPiece = { text: token, style: piece.style };
+      const tokenWidth = pieceWidth(tokenPiece);
+      if (width > 0 && width + tokenWidth > maxWidth && token.trim()) {
+        lines.push([]);
+        width = 0;
       }
+
+      if (tokenWidth <= maxWidth) {
+        if (width === 0 && !token.trim()) return;
+        append(tokenPiece);
+        width += tokenWidth;
+        return;
+      }
+
+      [...token].forEach((character) => {
+        const characterPiece = { text: character, style: piece.style };
+        const characterWidth = pieceWidth(characterPiece);
+        if (width > 0 && width + characterWidth > maxWidth) {
+          lines.push([]);
+          width = 0;
+        }
+        append(characterPiece);
+        width += characterWidth;
+      });
     });
-    if (line) lines.push(line);
   });
+
   return lines;
 }
 
@@ -146,48 +252,78 @@ function FaceText({
 }) {
   if (!settings?.content.trim()) return null;
 
-  const fontSize = settings.fontSize * 0.352778;
-  const lineHeight = fontSize * 1.22;
-  const padding = Math.min(3, rect.width * 0.08, rect.height * 0.08);
-  const maxCharacters = Math.max(1, Math.floor((rect.width - padding * 2) / (fontSize * 0.55)));
-  const allLines = wrapText(settings.content, maxCharacters);
-  const maxLines = Math.max(1, Math.floor((rect.height - padding * 2) / lineHeight));
-  const lines = allLines.slice(0, maxLines);
-  const blockHeight = lines.length * lineHeight;
-  const firstBaseline = rect.y + (rect.height - blockHeight) / 2 + fontSize;
+  const orientation = settings.orientation ??
+    (rect.width < rect.height * 0.4 ? "vertical" : "horizontal");
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + rect.height / 2;
+  const layoutRect = orientation === "vertical"
+    ? {
+        x: centerX - rect.height / 2,
+        y: centerY - rect.width / 2,
+        width: rect.height,
+        height: rect.width
+      }
+    : rect;
+  const padding = Math.min(3, layoutRect.width * 0.08, layoutRect.height * 0.08);
+  const lines = layoutRichText(richPieces(settings), layoutRect.width - padding * 2);
+  const lineHeights = lines.map((line) =>
+    Math.max(settings.fontSize, ...line.map((piece) => piece.style.fontSize)) * 0.352778 * 1.22
+  );
+  const availableHeight = layoutRect.height - padding * 2;
+  let usedHeight = 0;
+  const visibleLines = lines.filter((_, index) => {
+    if (usedHeight + lineHeights[index] > availableHeight) return false;
+    usedHeight += lineHeights[index];
+    return true;
+  });
+  const startY = layoutRect.y + (layoutRect.height - usedHeight) / 2;
   const x =
     settings.align === "left"
-      ? rect.x + padding
+      ? layoutRect.x + padding
       : settings.align === "right"
-        ? rect.x + rect.width - padding
-        : rect.x + rect.width / 2;
+        ? layoutRect.x + layoutRect.width - padding
+        : layoutRect.x + layoutRect.width / 2;
   const anchor =
     settings.align === "left" ? "start" : settings.align === "right" ? "end" : "middle";
+  let currentY = startY;
 
   return (
-    <text
-      x={x}
-      y={firstBaseline}
-      clipPath={`url(#${clipId})`}
-      fill={settings.color}
-      fontFamily={settings.fontFamily}
-      fontSize={fontSize}
-      fontWeight={settings.bold ? "700" : "400"}
-      fontStyle={settings.italic ? "italic" : "normal"}
-      textDecoration={settings.underline ? "underline" : "none"}
-      textAnchor={anchor}
-    >
-      {lines.map((line, index) => (
-        <tspan key={index} x={x} dy={index === 0 ? 0 : lineHeight}>
-          {line || "\u00a0"}
-        </tspan>
-      ))}
-    </text>
+    <g clipPath={`url(#${clipId})`}>
+      <g
+        transform={
+          orientation === "vertical"
+            ? `rotate(${settings.mirrorVertical ? -90 : 90} ${centerX} ${centerY})`
+            : undefined
+        }
+      >
+        {visibleLines.map((line, lineIndex) => {
+          const lineHeight = lineHeights[lineIndex];
+          currentY += lineHeight;
+          return (
+            <text key={lineIndex} x={x} y={currentY - lineHeight * 0.2} textAnchor={anchor}>
+              {line.map((piece, pieceIndex) => (
+                <tspan
+                  key={pieceIndex}
+                  fill={piece.style.color}
+                  fontFamily={piece.style.fontFamily}
+                  fontSize={piece.style.fontSize * 0.352778}
+                  fontWeight={piece.style.bold ? "700" : "400"}
+                  fontStyle={piece.style.italic ? "italic" : "normal"}
+                  textDecoration={piece.style.underline ? "underline" : "none"}
+                >
+                  {piece.text}
+                </tspan>
+              ))}
+            </text>
+          );
+        })}
+      </g>
+    </g>
   );
 }
 
 export const DielinePreview = forwardRef<SVGSVGElement, Props>(
-  ({ paper, geometry, artwork, faceModes, faceText, colorFlaps, useWrapArtwork, wrapArtwork }, ref) => {
+  ({ paper, geometry, artwork, faceModes, faceText, colorFlaps, showPrintLines, showThumbNotch, useWrapArtwork, wrapArtwork }, ref) => {
     const rawId = useId().replace(/:/g, "");
     const g = geometry;
     const px = g.pageX;
@@ -247,6 +383,15 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const gluePoints = `${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
     const imageForFace = (face: FaceName) =>
       (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;
+    const reliefCutLength = Math.min(4, Math.max(2, g.tuckLip * 0.22));
+    const frontTopY = py + g.bodyY;
+    const frontCenterX = panels.front.x + panels.front.width / 2;
+    const thumbNotchRadius = Math.min(7, Math.max(3.5, panels.front.width * 0.09));
+    const frontThumbNotchPath =
+      `M ${panels.front.x} ${frontTopY} ` +
+      `H ${frontCenterX - thumbNotchRadius} ` +
+      `A ${thumbNotchRadius} ${thumbNotchRadius} 0 0 0 ${frontCenterX + thumbNotchRadius} ${frontTopY} ` +
+      `H ${panels.front.x + panels.front.width}`;
 
     return (
       <svg
@@ -350,10 +495,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             className="flap-fill"
             style={{ fill: colorFlaps ? imageForFace("top")?.dominantColor ?? "none" : "none" }}
           />
-          <path
-            d={topFlapPath}
-            className="cut-shape"
-          />
+          {showPrintLines && <path d={topFlapPath} className="cut-shape" />}
           {g.bottomClosure === "tuck" && (
             <>
               <path
@@ -361,28 +503,28 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                 className="flap-fill"
                 style={{ fill: colorFlaps ? imageForFace("bottom")?.dominantColor ?? "none" : "none" }}
               />
-              <path d={bottomFlapPath} className="cut-shape" />
+              {showPrintLines && <path d={bottomFlapPath} className="cut-shape" />}
             </>
           )}
           {bottomUnderFlap && (
             <>
               <path d={`${bottomUnderPath} Z`} className="flap-fill" style={{ fill: "#fff" }} />
-              <path d={bottomUnderPath} className="cut-shape" />
+              {showPrintLines && <path d={bottomUnderPath} className="cut-shape" />}
             </>
           )}
-          <DustFlap {...leftTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
-          <DustFlap {...rightTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
-          <DustFlap {...leftBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
-          <DustFlap {...rightBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
+          <DustFlap {...leftTopDust} top showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightTopDust} top showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
+          <DustFlap {...leftBottomDust} top={false} showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightBottomDust} top={false} showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
           <polygon
             points={gluePoints}
             className="flap-fill"
             style={{ fill: "#fff" }}
           />
-          <polyline points={gluePoints} className="cut-shape" />
+          {showPrintLines && <polyline points={gluePoints} className="cut-shape" />}
         </g>
 
-        <g id="cut-lines">
+        <g id="cut-lines" style={{ display: showPrintLines ? undefined : "none" }}>
           <line x1={px} y1={py + g.bodyY} x2={px} y2={bodyBottom} className="cut-line" />
           <line x1={top.x} y1={top.y} x2={top.x} y2={py + g.bodyY} className="cut-line" />
           <line x1={top.x + top.width} y1={top.y} x2={top.x + top.width} y2={py + g.bodyY} className="cut-line" />
@@ -397,13 +539,53 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               className="cut-line"
             />
           )}
-          <line x1={panels.front.x} y1={py + g.bodyY} x2={panels.front.x + panels.front.width} y2={py + g.bodyY} className="cut-line" />
+          {showThumbNotch ? (
+            <path d={frontThumbNotchPath} className="cut-line" />
+          ) : (
+            <line
+              x1={panels.front.x}
+              y1={frontTopY}
+              x2={panels.front.x + panels.front.width}
+              y2={frontTopY}
+              className="cut-line"
+            />
+          )}
+          <line
+            x1={top.x}
+            y1={top.y}
+            x2={top.x + reliefCutLength}
+            y2={top.y}
+            className="cut-line"
+          />
+          <line
+            x1={top.x + top.width - reliefCutLength}
+            y1={top.y}
+            x2={top.x + top.width}
+            y2={top.y}
+            className="cut-line"
+          />
           {g.bottomClosure === "tuck" && (
-            <line x1={panels.front.x} y1={bodyBottom} x2={panels.front.x + panels.front.width} y2={bodyBottom} className="cut-line" />
+            <>
+              <line x1={panels.front.x} y1={bodyBottom} x2={panels.front.x + panels.front.width} y2={bodyBottom} className="cut-line" />
+              <line
+                x1={bottom.x}
+                y1={bottom.y + bottom.height}
+                x2={bottom.x + reliefCutLength}
+                y2={bottom.y + bottom.height}
+                className="cut-line"
+              />
+              <line
+                x1={bottom.x + bottom.width - reliefCutLength}
+                y1={bottom.y + bottom.height}
+                x2={bottom.x + bottom.width}
+                y2={bottom.y + bottom.height}
+                className="cut-line"
+              />
+            </>
           )}
         </g>
 
-        <g id="fold-lines">
+        <g id="fold-lines" style={{ display: showPrintLines ? undefined : "none" }}>
           {[panels.left.x, panels.front.x, panels.right.x, rightEdge].map((x) => (
             <line key={x} x1={x} y1={py + g.bodyY} x2={x} y2={bodyBottom} className="fold-line" />
           ))}
