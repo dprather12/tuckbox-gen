@@ -17,9 +17,13 @@ import type {
   ArtworkSettings,
   BottomClosure,
   BoxDimensions,
+  FaceContentMode,
+  FaceModeMap,
   FaceName,
   Orientation,
   PaperSize,
+  TextMap,
+  TextSettings,
   Unit
 } from "./types";
 
@@ -37,6 +41,8 @@ export default function App() {
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>("tuck");
   const [colorFlaps, setColorFlaps] = useState(true);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
+  const [faceModes, setFaceModes] = useState<FaceModeMap>({});
+  const [faceText, setFaceText] = useState<TextMap>({});
   const [useWrapArtwork, setUseWrapArtwork] = useState(false);
   const [wrapArtwork, setWrapArtwork] = useState<ArtworkSettings>();
   const [exporting, setExporting] = useState(false);
@@ -101,6 +107,26 @@ export default function App() {
     setWrapArtwork(next);
   };
 
+  const updateFaceMode = (face: FaceName, mode: FaceContentMode) => {
+    setFaceModes((current) => ({ ...current, [face]: mode }));
+  };
+
+  const updateFaceText = (face: FaceName, next?: TextSettings) => {
+    setFaceText((current) => {
+      const copy = { ...current };
+      if (next) copy[face] = next;
+      else delete copy[face];
+      return copy;
+    });
+  };
+
+  const decoratedFaceCount =
+    faces.filter((face) =>
+      (faceModes[face] ?? "image") === "text"
+        ? Boolean(faceText[face]?.content.trim())
+        : Boolean(artwork[face])
+    ).length + (useWrapArtwork && wrapArtwork ? 1 : 0);
+
   const handlePdf = async () => {
     if (!svgRef.current || !fits) return;
     setExporting(true);
@@ -110,7 +136,7 @@ export default function App() {
         format: "pdf",
         paper: paper.name,
         orientation: paper.orientation,
-        artwork_faces: Object.keys(artwork).length + (useWrapArtwork && wrapArtwork ? 1 : 0)
+        artwork_faces: decoratedFaceCount
       });
     } catch (error) {
       console.error(error);
@@ -230,6 +256,10 @@ export default function App() {
                   key={face}
                   face={face}
                   artwork={artwork[face]}
+                  mode={faceModes[face] ?? "image"}
+                  text={faceText[face]}
+                  onModeChange={(mode) => updateFaceMode(face, mode)}
+                  onTextChange={(next) => updateFaceText(face, next)}
                   onChange={(selectedFace, next) =>
                     updateArtwork(selectedFace as FaceName, next)
                   }
@@ -282,7 +312,10 @@ export default function App() {
                 paper={paper}
                 geometry={geometry}
                 artwork={artwork}
+                faceModes={faceModes}
+                faceText={faceText}
                 colorFlaps={colorFlaps}
+                useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
               />
             </div>
@@ -305,7 +338,7 @@ export default function App() {
                     format: "svg",
                     paper: paper.name,
                     orientation: paper.orientation,
-                    artwork_faces: Object.keys(artwork).length + (useWrapArtwork && wrapArtwork ? 1 : 0)
+                    artwork_faces: decoratedFaceCount
                   });
                 }}
               >

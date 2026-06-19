@@ -4,16 +4,22 @@ import type {
   ArtworkMap,
   ArtworkSettings,
   DielineGeometry,
+  FaceModeMap,
   FaceName,
   Paper,
-  Rect
+  Rect,
+  TextMap,
+  TextSettings
 } from "../types";
 
 interface Props {
   paper: Paper;
   geometry: DielineGeometry;
   artwork: ArtworkMap;
+  faceModes: FaceModeMap;
+  faceText: TextMap;
   colorFlaps: boolean;
+  useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
 }
 
@@ -95,8 +101,93 @@ function DustFlap({
   );
 }
 
+function wrapText(content: string, maxCharacters: number): string[] {
+  const lines: string[] = [];
+  content.split(/\r?\n/).forEach((paragraph) => {
+    if (!paragraph) {
+      lines.push("");
+      return;
+    }
+
+    const words = paragraph.split(/\s+/);
+    let line = "";
+    words.forEach((word) => {
+      if (word.length > maxCharacters) {
+        if (line) {
+          lines.push(line);
+          line = "";
+        }
+        for (let index = 0; index < word.length; index += maxCharacters) {
+          lines.push(word.slice(index, index + maxCharacters));
+        }
+        return;
+      }
+      const candidate = line ? `${line} ${word}` : word;
+      if (candidate.length > maxCharacters && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = candidate;
+      }
+    });
+    if (line) lines.push(line);
+  });
+  return lines;
+}
+
+function FaceText({
+  rect,
+  settings,
+  clipId
+}: {
+  rect: Rect;
+  settings?: TextSettings;
+  clipId: string;
+}) {
+  if (!settings?.content.trim()) return null;
+
+  const fontSize = settings.fontSize * 0.352778;
+  const lineHeight = fontSize * 1.22;
+  const padding = Math.min(3, rect.width * 0.08, rect.height * 0.08);
+  const maxCharacters = Math.max(1, Math.floor((rect.width - padding * 2) / (fontSize * 0.55)));
+  const allLines = wrapText(settings.content, maxCharacters);
+  const maxLines = Math.max(1, Math.floor((rect.height - padding * 2) / lineHeight));
+  const lines = allLines.slice(0, maxLines);
+  const blockHeight = lines.length * lineHeight;
+  const firstBaseline = rect.y + (rect.height - blockHeight) / 2 + fontSize;
+  const x =
+    settings.align === "left"
+      ? rect.x + padding
+      : settings.align === "right"
+        ? rect.x + rect.width - padding
+        : rect.x + rect.width / 2;
+  const anchor =
+    settings.align === "left" ? "start" : settings.align === "right" ? "end" : "middle";
+
+  return (
+    <text
+      x={x}
+      y={firstBaseline}
+      clipPath={`url(#${clipId})`}
+      fill={settings.color}
+      fontFamily={settings.fontFamily}
+      fontSize={fontSize}
+      fontWeight={settings.bold ? "700" : "400"}
+      fontStyle={settings.italic ? "italic" : "normal"}
+      textDecoration={settings.underline ? "underline" : "none"}
+      textAnchor={anchor}
+    >
+      {lines.map((line, index) => (
+        <tspan key={index} x={x} dy={index === 0 ? 0 : lineHeight}>
+          {line || "\u00a0"}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
 export const DielinePreview = forwardRef<SVGSVGElement, Props>(
-  ({ paper, geometry, artwork, colorFlaps, wrapArtwork }, ref) => {
+  ({ paper, geometry, artwork, faceModes, faceText, colorFlaps, useWrapArtwork, wrapArtwork }, ref) => {
     const rawId = useId().replace(/:/g, "");
     const g = geometry;
     const px = g.pageX;
@@ -154,6 +245,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const leftBottomDust = { x: panels.left.x, y: bodyBottom, width: panels.left.width, height: panels.left.width };
     const rightBottomDust = { x: panels.right.x, y: bodyBottom, width: panels.right.width, height: panels.right.width };
     const gluePoints = `${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
+    const imageForFace = (face: FaceName) =>
+      (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;
 
     return (
       <svg
@@ -230,13 +323,24 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             />
           )}
           {faces.map(([face, rect]) => (
-            wrapArtwork && ["front", "back", "left", "right"].includes(face) ? null :
+            useWrapArtwork && ["front", "back", "left", "right"].includes(face) ? null :
             <ArtworkImage
               key={face}
               rect={rect}
-              artwork={artwork[face]}
+              artwork={imageForFace(face)}
               clipId={`${rawId}-${face}`}
             />
+          ))}
+          {faces.map(([face, rect]) => (
+            (faceModes[face] ?? "image") === "text" &&
+            !(useWrapArtwork && ["front", "back", "left", "right"].includes(face)) ? (
+              <FaceText
+                key={`text-${face}`}
+                rect={rect}
+                settings={faceText[face]}
+                clipId={`${rawId}-${face}`}
+              />
+            ) : null
           ))}
         </g>
 
@@ -244,7 +348,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <path
             d={`${topFlapPath} Z`}
             className="flap-fill"
-            style={{ fill: colorFlaps ? artwork.top?.dominantColor ?? "none" : "none" }}
+            style={{ fill: colorFlaps ? imageForFace("top")?.dominantColor ?? "none" : "none" }}
           />
           <path
             d={topFlapPath}
@@ -255,7 +359,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               <path
                 d={`${bottomFlapPath} Z`}
                 className="flap-fill"
-                style={{ fill: colorFlaps ? artwork.bottom?.dominantColor ?? "none" : "none" }}
+                style={{ fill: colorFlaps ? imageForFace("bottom")?.dominantColor ?? "none" : "none" }}
               />
               <path d={bottomFlapPath} className="cut-shape" />
             </>
@@ -266,10 +370,10 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               <path d={bottomUnderPath} className="cut-shape" />
             </>
           )}
-          <DustFlap {...leftTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.left?.dominantColor : undefined} />
-          <DustFlap {...rightTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.right?.dominantColor : undefined} />
-          <DustFlap {...leftBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.left?.dominantColor : undefined} />
-          <DustFlap {...rightBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? artwork.right?.dominantColor : undefined} />
+          <DustFlap {...leftTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightTopDust} top fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
+          <DustFlap {...leftBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightBottomDust} top={false} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
           <polygon
             points={gluePoints}
             className="flap-fill"

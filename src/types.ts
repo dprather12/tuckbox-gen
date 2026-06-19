@@ -5,6 +5,8 @@ export type ResolvedOrientation = Exclude<Orientation, "auto">;
 export type FaceName = "front" | "back" | "left" | "right" | "top" | "bottom";
 export type ImageFit = "crop" | "stretch" | "repeat";
 export type BottomClosure = "tuck" | "glued";
+export type FaceContentMode = "image" | "text";
+export type TextAlignment = "left" | "center" | "right";
 
 export interface BoxDimensions {
   width: number;
@@ -25,6 +27,20 @@ export interface ArtworkSettings {
 }
 
 export type ArtworkMap = Partial<Record<FaceName, ArtworkSettings>>;
+
+export interface TextSettings {
+  content: string;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  align: TextAlignment;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+
+export type TextMap = Partial<Record<FaceName, TextSettings>>;
+export type FaceModeMap = Partial<Record<FaceName, FaceContentMode>>;
 
 export interface Rect {
   x: number;
