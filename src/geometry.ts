@@ -12,7 +12,7 @@ import type {
 
 export const BLEED_MM = 3;
 export const SAFE_MARGIN_MM = 6.35;
-export const MAX_FLAP_MM = 15;
+export const MAX_FLAP_MM = 19.05;
 
 const PAPER_SIZES: Record<PaperSize, { width: number; height: number; name: string }> = {
   letter: { width: 215.9, height: 279.4, name: "US Letter" },
