@@ -150,6 +150,21 @@ export default function App() {
     });
   };
 
+  const hasAnyPanelContent =
+    Object.keys(artwork).length > 0 ||
+    Object.keys(faceText).length > 0 ||
+    Boolean(wrapArtwork);
+
+  const clearAllPanelContent = () => {
+    setArtwork({});
+    setFaceText({});
+    setWrapArtwork(undefined);
+    trackEvent("artwork_clear_all", {
+      image_faces: Object.keys(artwork).length + (wrapArtwork ? 1 : 0),
+      text_faces: Object.keys(faceText).length
+    });
+  };
+
   const decoratedFaceCount =
     faces.filter((face) =>
       (faceModes[face] ?? "image") === "text"
@@ -255,6 +270,14 @@ export default function App() {
               <div>
                 <h2>Panel artwork</h2>
               </div>
+              <button
+                className="clear-all-button"
+                type="button"
+                disabled={!hasAnyPanelContent}
+                onClick={clearAllPanelContent}
+              >
+                Clear all
+              </button>
             </div>
             <div className="more-settings">
               <button

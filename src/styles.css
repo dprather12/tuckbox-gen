@@ -58,7 +58,19 @@ main { min-height: 100vh; }
 .controls { background: #f8f7f2; border-right: 1px solid #ced5cf; }
 .control-section { padding: 28px clamp(24px, 4vw, 50px); border-bottom: 1px solid #d9ded9; }
 .section-heading { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; }
+.artwork-section .section-heading { justify-content: space-between; }
 .section-heading h2, .preview-toolbar h2, .export-card h2 { font-size: 1.4rem; letter-spacing: -.025em; }
+.clear-all-button {
+  padding: 6px 10px;
+  border: 1px solid #c98f84;
+  border-radius: 5px;
+  color: #943f33;
+  background: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.clear-all-button:hover:not(:disabled) { border-color: #a84f41; background: #f8e9e6; }
+.clear-all-button:disabled { cursor: default; opacity: .45; }
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -93,8 +105,23 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .resolved-note, .section-copy { color: #718078; font-size: .78rem; margin: 14px 0 0; }
 .section-copy { margin: -12px 0 18px; }
 .artwork-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.art-card { min-width: 0; padding: 14px; border: 1px solid #d4dad5; background: #f1f2ee; border-radius: 7px; }
+.art-card { position: relative; min-width: 0; padding: 14px; border: 1px solid #d4dad5; background: #f1f2ee; border-radius: 7px; }
 .art-card.has-art { background: #fff; border-color: #b9c8be; }
+.art-card.dragging-file { border-color: #806331; box-shadow: 0 0 0 3px rgba(201,158,86,.22); }
+.drop-overlay {
+  position: absolute;
+  z-index: 5;
+  inset: 5px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed #806331;
+  border-radius: 5px;
+  color: #513d1d;
+  background: rgba(248,242,231,.94);
+  font-size: .8rem;
+  font-weight: 800;
+  pointer-events: none;
+}
 .art-card-heading { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
 .art-card h3 { font-size: .95rem; }
 .art-card .eyebrow { font-size: .55rem; }
@@ -521,11 +548,16 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   .assembled-heading { align-items: flex-start; }
   .assembled-modal { padding: 10px; }
   .assembled-stage-large { height: 72vh; }
-  .preview-options-row { gap: 10px; }
+  .preview-options-row { align-items: flex-end; gap: 8px; }
+  .preview-options-row .preview-paper-controls {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
   .assembled-mini-frame {
-    flex-basis: 112px;
-    width: 112px;
-    height: 88px;
-    margin-top: -23px;
+    flex: 0 0 96px;
+    width: 96px;
+    height: 82px;
+    margin-top: 0;
   }
 }

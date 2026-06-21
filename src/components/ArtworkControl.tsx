@@ -56,9 +56,11 @@ export function ArtworkControl({
   const editorRef = useRef<HTMLDivElement>(null);
   const fontSizeRef = useRef<HTMLInputElement>(null);
   const selectionRef = useRef<Range | null>(null);
+  const dragDepthRef = useRef(0);
   const faceDefaults = face === "wrap" ? undefined : defaultText(face);
   const textSettings = text ?? faceDefaults;
   const [fontSizeInput, setFontSizeInput] = useState(String(textSettings?.fontSize ?? 16));
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   useEffect(() => {
     if (!editorRef.current || face === "wrap") return;
@@ -73,10 +75,10 @@ export function ArtworkControl({
   }, [textSettings?.fontSize]);
 
   const handleFile = (file?: File) => {
-    if (!file) return;
+    if (!file) return false;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       window.alert("Please choose a PNG, JPEG, or WebP image.");
-      return;
+      return false;
     }
 
     const reader = new FileReader();
@@ -108,6 +110,39 @@ export function ArtworkControl({
       });
     };
     reader.readAsDataURL(file);
+    return true;
+  };
+
+  const hasDraggedFiles = (event: React.DragEvent<HTMLElement>) =>
+    Array.from(event.dataTransfer.types).includes("Files");
+
+  const handleDragEnter = (event: React.DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFile(true);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event) && dragDepthRef.current === 0) return;
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDraggingFile(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDraggingFile(false);
+    if (handleFile(event.dataTransfer.files[0])) {
+      onModeChange?.("image");
+    }
   };
 
   const patch = (next: Partial<ArtworkSettings>) => {
@@ -191,7 +226,18 @@ export function ArtworkControl({
   const hasContent = mode === "text" ? Boolean(text?.content.trim()) : Boolean(artwork);
 
   return (
-    <article className={`art-card ${hasContent ? "has-art" : ""} ${allowRepeat ? "wrap-art-card" : ""}`}>
+    <article
+      className={`art-card ${hasContent ? "has-art" : ""} ${allowRepeat ? "wrap-art-card" : ""} ${isDraggingFile ? "dragging-file" : ""}`}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDraggingFile && (
+        <div className="drop-overlay" aria-hidden="true">
+          Drop image here
+        </div>
+      )}
       <div className="art-card-heading">
         <h3>{face === "wrap" ? "Wrap image" : LABELS[face]}</h3>
         {mode === "image" && artwork && (
@@ -234,8 +280,8 @@ export function ArtworkControl({
               onChange={(event) => handleFile(event.target.files?.[0])}
             />
             <span>
-              {artwork ? "Replace image" : "Choose image"}
-              <small>PNG, JPEG</small>
+              {artwork ? "Replace or drag image" : "Choose or drag image"}
+              <small>PNG, JPEG, WebP</small>
             </span>
           </label>
 
