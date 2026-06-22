@@ -173,17 +173,27 @@ export function ArtworkImage({
   const y = rect.y - (zoomedHeight - rect.height) / 2 + (artwork.offsetY / 100) * rect.height * 0.5;
 
   return (
-    <image
-      href={artwork.src}
-      x={x}
-      y={y}
-      width={zoomedWidth}
-      height={zoomedHeight}
-      preserveAspectRatio="xMidYMid slice"
+    <g
       clipPath={`url(#${clipId})`}
       mask={maskId ? `url(#${maskId})` : undefined}
       transform={transform}
-    />
+    >
+      <rect
+        x={rect.x}
+        y={rect.y}
+        width={rect.width}
+        height={rect.height}
+        fill={artwork.backgroundColor ?? "#ffffff"}
+      />
+      <image
+        href={artwork.src}
+        x={x}
+        y={y}
+        width={zoomedWidth}
+        height={zoomedHeight}
+        preserveAspectRatio="xMidYMid slice"
+      />
+    </g>
   );
 }
 

@@ -22,6 +22,7 @@ export interface ArtworkSettings {
   zoom: number;
   offsetX: number;
   offsetY: number;
+  backgroundColor?: string;
   dominantColor?: string;
   imageWidth?: number;
   imageHeight?: number;

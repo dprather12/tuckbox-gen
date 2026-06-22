@@ -4,6 +4,7 @@ function exportClone(source: SVGSVGElement, includeBleedGuides: boolean): SVGSVG
   const clone = source.cloneNode(true) as SVGSVGElement;
   clone.classList.remove("dieline-svg");
   clone.querySelectorAll('[data-preview-guide="safe"]').forEach((node) => node.remove());
+  clone.querySelectorAll('[data-preview-only]').forEach((node) => node.remove());
   if (includeBleedGuides) {
     clone.querySelectorAll<SVGElement>('[data-preview-guide="bleed"]').forEach((node) => {
       node.style.removeProperty("display");

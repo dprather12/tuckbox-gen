@@ -104,6 +104,7 @@ export function ArtworkControl({
         zoom: artwork?.zoom ?? 1,
         offsetX: artwork?.offsetX ?? 0,
         offsetY: artwork?.offsetY ?? 0,
+        backgroundColor: artwork?.backgroundColor ?? "#ffffff",
         dominantColor,
         imageWidth: image.naturalWidth || undefined,
         imageHeight: image.naturalHeight || undefined
@@ -301,19 +302,66 @@ export function ArtworkControl({
               </div>
 
               {artwork.fit === "crop" && (
-                <div className="range-grid">
-                  <label>
-                    <span>Zoom <output>{artwork.zoom.toFixed(1)}×</output></span>
-                    <input type="range" min="1" max="3" step="0.1" value={artwork.zoom} onChange={(event) => patch({ zoom: Number(event.target.value) })} />
-                  </label>
-                  <label>
-                    <span>Horizontal <output>{artwork.offsetX}%</output></span>
-                    <input type="range" min="-100" max="100" value={artwork.offsetX} onChange={(event) => patch({ offsetX: Number(event.target.value) })} />
-                  </label>
-                  <label>
-                    <span>Vertical <output>{artwork.offsetY}%</output></span>
-                    <input type="range" min="-100" max="100" value={artwork.offsetY} onChange={(event) => patch({ offsetY: Number(event.target.value) })} />
-                  </label>
+                <div className="crop-controls">
+                  <p className="crop-help">
+                    Drag the image in the print preview, or use the controls below.
+                  </p>
+                  <div className="range-grid">
+                    <label>
+                      <span>Zoom <output>{artwork.zoom.toFixed(1)}×</output></span>
+                      <input
+                        aria-label="Crop zoom"
+                        type="range"
+                        min="0.2"
+                        max="4"
+                        step="0.1"
+                        value={artwork.zoom}
+                        onChange={(event) => patch({ zoom: Number(event.target.value) })}
+                      />
+                    </label>
+                    <label>
+                      <span>Move horizontally <output>{artwork.offsetX}%</output></span>
+                      <input
+                        aria-label="Crop horizontal position"
+                        type="range"
+                        min="-100"
+                        max="100"
+                        value={artwork.offsetX}
+                        onChange={(event) => patch({ offsetX: Number(event.target.value) })}
+                      />
+                    </label>
+                    <label>
+                      <span>Move vertically <output>{artwork.offsetY}%</output></span>
+                      <input
+                        aria-label="Crop vertical position"
+                        type="range"
+                        min="-100"
+                        max="100"
+                        value={artwork.offsetY}
+                        onChange={(event) => patch({ offsetY: Number(event.target.value) })}
+                      />
+                    </label>
+                  </div>
+                  <div className="crop-actions">
+                    <label className="crop-background">
+                      <span>Background Color</span>
+                      <input
+                        className="color-input"
+                        aria-label="Crop background color"
+                        type="color"
+                        value={artwork.backgroundColor ?? "#ffffff"}
+                        onChange={(event) => patch({ backgroundColor: event.target.value })}
+                      />
+                    </label>
+                    <button
+                      className="crop-reset-button"
+                      type="button"
+                      onClick={() => patch({ zoom: 1, offsetX: 0, offsetY: 0 })}
+                      disabled={artwork.zoom === 1 && artwork.offsetX === 0 && artwork.offsetY === 0}
+                    >
+                      Reset position
+                    </button>
+                  </div>
                 </div>
               )}
             </>

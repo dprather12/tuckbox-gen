@@ -1,4 +1,10 @@
-import { forwardRef, useId } from "react";
+import {
+  forwardRef,
+  useId,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent
+} from "react";
 import { BLEED_MM, MAX_FLAP_MM, SAFE_MARGIN_MM } from "../geometry";
 import { ArtworkImage, FaceText } from "./FaceArtwork";
 import type {
@@ -23,6 +29,33 @@ interface Props {
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
+  onArtworkPositionChange: (
+    target: FaceName | "wrap",
+    offsetX: number,
+    offsetY: number
+  ) => void;
+}
+
+interface ArtworkDrag {
+  pointerId: number;
+  target: FaceName | "wrap";
+  startX: number;
+  startY: number;
+  startOffsetX: number;
+  startOffsetY: number;
+  rect: Rect;
+}
+
+const clampOffset = (value: number) => Math.min(100, Math.max(-100, value));
+
+function svgPoint(
+  element: SVGGraphicsElement,
+  clientX: number,
+  clientY: number
+): DOMPoint | undefined {
+  const matrix = element.ownerSVGElement?.getScreenCTM();
+  if (!matrix) return undefined;
+  return new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse());
 }
 
 function DustFlap({
@@ -55,8 +88,22 @@ function DustFlap({
 }
 
 export const DielinePreview = forwardRef<SVGSVGElement, Props>(
-  ({ paper, geometry, artwork, faceModes, faceText, colorFlaps, showPrintLines, showThumbNotch, useWrapArtwork, wrapArtwork }, ref) => {
+  ({
+    paper,
+    geometry,
+    artwork,
+    faceModes,
+    faceText,
+    colorFlaps,
+    showPrintLines,
+    showThumbNotch,
+    useWrapArtwork,
+    wrapArtwork,
+    onArtworkPositionChange
+  }, ref) => {
     const rawId = useId().replace(/:/g, "");
+    const dragRef = useRef<ArtworkDrag | undefined>(undefined);
+    const [draggingTarget, setDraggingTarget] = useState<FaceName | "wrap">();
     const g = geometry;
     const px = g.pageX;
     const py = g.pageY;
@@ -117,6 +164,53 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const gluePoints = `${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
     const imageForFace = (face: FaceName) =>
       (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;
+    const draggableFaces = faces.filter(
+      ([face]) =>
+        !(useWrapArtwork && ["front", "back", "left", "right"].includes(face)) &&
+        imageForFace(face)?.fit === "crop"
+    );
+    const beginArtworkDrag = (
+      event: ReactPointerEvent<SVGRectElement>,
+      target: FaceName | "wrap",
+      rect: Rect,
+      settings: ArtworkSettings
+    ) => {
+      if (event.button !== 0) return;
+      const point = svgPoint(event.currentTarget, event.clientX, event.clientY);
+      if (!point) return;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      dragRef.current = {
+        pointerId: event.pointerId,
+        target,
+        startX: point.x,
+        startY: point.y,
+        startOffsetX: settings.offsetX,
+        startOffsetY: settings.offsetY,
+        rect
+      };
+      setDraggingTarget(target);
+    };
+    const moveArtworkDrag = (event: ReactPointerEvent<SVGRectElement>) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      const point = svgPoint(event.currentTarget, event.clientX, event.clientY);
+      if (!point) return;
+      event.preventDefault();
+      onArtworkPositionChange(
+        drag.target,
+        clampOffset(drag.startOffsetX + ((point.x - drag.startX) / drag.rect.width) * 200),
+        clampOffset(drag.startOffsetY + ((point.y - drag.startY) / drag.rect.height) * 200)
+      );
+    };
+    const endArtworkDrag = (event: ReactPointerEvent<SVGRectElement>) => {
+      if (dragRef.current?.pointerId !== event.pointerId) return;
+      dragRef.current = undefined;
+      setDraggingTarget(undefined);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    };
     const reliefCutLength = Math.min(4, Math.max(2, g.tuckLip * 0.22));
     const frontTopY = py + g.bodyY;
     const frontCenterX = panels.front.x + panels.front.width / 2;
@@ -190,6 +284,9 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             .bleed-line{fill:none;stroke:#d56351;stroke-width:.22;stroke-dasharray:1.2 1.2}
             .safe-line{fill:none;stroke:#c7cec9;stroke-width:.2;stroke-dasharray:2 1.5}
             .scale-text{font:2.8px Arial,sans-serif;fill:#36453d}
+            .artwork-drag-handle{fill:transparent;stroke:transparent;stroke-width:.8;cursor:grab;touch-action:none}
+            .artwork-drag-handle:hover{stroke:#c99e56;stroke-dasharray:2 1}
+            .artwork-drag-handle.dragging{stroke:#806331;stroke-dasharray:2 1;cursor:grabbing}
           `}</style>
         </defs>
 
@@ -391,6 +488,35 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <text x={SAFE_MARGIN_MM} y={paper.height - 3.5} className="scale-text">
             50 mm scale check
           </text>
+        </g>
+
+        <g data-preview-only="artwork-drag-handles" aria-hidden="true">
+          {useWrapArtwork && wrapArtwork?.fit === "crop" && (
+            <rect
+              {...bodyRect}
+              className={`artwork-drag-handle${draggingTarget === "wrap" ? " dragging" : ""}`}
+              onPointerDown={(event) => beginArtworkDrag(event, "wrap", bodyRect, wrapArtwork)}
+              onPointerMove={moveArtworkDrag}
+              onPointerUp={endArtworkDrag}
+              onPointerCancel={endArtworkDrag}
+              onLostPointerCapture={endArtworkDrag}
+            />
+          )}
+          {draggableFaces.map(([face, rect]) => {
+            const settings = imageForFace(face)!;
+            return (
+              <rect
+                {...rect}
+                key={face}
+                className={`artwork-drag-handle${draggingTarget === face ? " dragging" : ""}`}
+                onPointerDown={(event) => beginArtworkDrag(event, face, rect, settings)}
+                onPointerMove={moveArtworkDrag}
+                onPointerUp={endArtworkDrag}
+                onPointerCancel={endArtworkDrag}
+                onLostPointerCapture={endArtworkDrag}
+              />
+            );
+          })}
         </g>
       </svg>
     );

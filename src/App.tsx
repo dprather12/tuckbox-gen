@@ -137,6 +137,25 @@ export default function App() {
     setWrapArtwork(next);
   };
 
+  const updateArtworkPosition = (
+    target: FaceName | "wrap",
+    offsetX: number,
+    offsetY: number
+  ) => {
+    if (target === "wrap") {
+      setWrapArtwork((current) =>
+        current ? { ...current, offsetX, offsetY } : current
+      );
+      return;
+    }
+    setArtwork((current) => {
+      const settings = current[target];
+      return settings
+        ? { ...current, [target]: { ...settings, offsetX, offsetY } }
+        : current;
+    });
+  };
+
   const updateFaceMode = (face: FaceName, mode: FaceContentMode) => {
     setFaceModes((current) => ({ ...current, [face]: mode }));
   };
@@ -415,6 +434,7 @@ export default function App() {
                 showThumbNotch={showThumbNotch}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
+                onArtworkPositionChange={updateArtworkPosition}
               />
             </div>
           </div>

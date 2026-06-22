@@ -137,6 +137,22 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .range-grid label { display: grid; gap: 3px; color: #627168; font-size: .65rem; }
 .range-grid label span { display: flex; justify-content: space-between; }
 .range-grid input { width: 100%; accent-color: #355b48; }
+.crop-controls { display: grid; gap: 10px; }
+.crop-help { margin: 0; color: #718078; font-size: .65rem; line-height: 1.35; }
+.crop-actions { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
+.crop-background { display: grid; gap: 4px; color: #627168; font-size: .65rem; }
+.crop-reset-button {
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #bdc7c0;
+  border-radius: 5px;
+  color: #355444;
+  background: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+}
+.crop-reset-button:hover:not(:disabled) { border-color: #806331; background: #f8f2e7; }
+.crop-reset-button:disabled { cursor: default; opacity: .45; }
 .text-editor { display: grid; gap: 9px; margin-top: 10px; }
 .rich-text-input {
   width: 100%;
