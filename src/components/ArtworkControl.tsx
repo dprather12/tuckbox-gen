@@ -277,7 +277,11 @@ export function ArtworkControl({
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => handleFile(event.target.files?.[0])}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                handleFile(file);
+              }}
             />
             <span>
               {artwork ? "Replace or drag image" : "Choose or drag image"}
