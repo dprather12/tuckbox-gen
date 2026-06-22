@@ -126,9 +126,23 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
       `H ${frontCenterX - thumbNotchRadius} ` +
       `A ${thumbNotchRadius} ${thumbNotchRadius} 0 0 0 ${frontCenterX + thumbNotchRadius} ${frontTopY} ` +
       `H ${panels.front.x + panels.front.width}`;
+    // Replace the SVG node when its geometry changes. Chromium can otherwise
+    // retain stale pixels for moved strokes when raster images and the
+    // preview's drop-shadow compositing layer are both present.
+    const geometryKey = [
+      paper.width,
+      paper.height,
+      g.totalWidth,
+      g.totalHeight,
+      g.bodyY,
+      g.pageX,
+      g.pageY,
+      g.bottomClosure
+    ].join("-");
 
     return (
       <svg
+        key={geometryKey}
         ref={ref}
         className="dieline-svg"
         xmlns="http://www.w3.org/2000/svg"
@@ -320,8 +334,13 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         </g>
 
         <g id="fold-lines" style={{ display: showPrintLines ? undefined : "none" }}>
-          {[panels.left.x, panels.front.x, panels.right.x, rightEdge].map((x) => (
-            <line key={x} x1={x} y1={py + g.bodyY} x2={x} y2={bodyBottom} className="fold-line" />
+          {[
+            { name: "back-left", x: panels.left.x },
+            { name: "left-front", x: panels.front.x },
+            { name: "front-right", x: panels.right.x },
+            { name: "right-glue", x: rightEdge }
+          ].map(({ name, x }) => (
+            <line key={name} x1={x} y1={py + g.bodyY} x2={x} y2={bodyBottom} className="fold-line" />
           ))}
           {[panels.back, panels.left, panels.right].map((panel, index) => (
             <g key={`horizontal-${index}`}>
