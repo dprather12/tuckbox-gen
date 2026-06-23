@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import type {
   ArtworkMap,
   ArtworkSettings,
@@ -26,15 +26,166 @@ interface Props {
 const DEFAULT_ROTATION = { x: -18, y: 30 };
 const MIN_TILT = -55;
 const MAX_TILT = 35;
+const FACE_RASTER_SCALE = 3;
 
 export function clampPreviewTilt(value: number): number {
   return Math.min(MAX_TILT, Math.max(MIN_TILT, value));
+}
+
+function clippedFacePath(
+  context: CanvasRenderingContext2D,
+  face: FaceName,
+  width: number,
+  height: number,
+  showThumbNotch: boolean
+) {
+  context.beginPath();
+  if (face !== "front" || !showThumbNotch) {
+    context.rect(0, 0, width, height);
+    return;
+  }
+
+  const notchRadius = Math.min(7, Math.max(3.5, width * 0.09));
+  const centerX = width / 2;
+  context.moveTo(0, 0);
+  context.lineTo(centerX - notchRadius, 0);
+  context.arc(centerX, 0, notchRadius, Math.PI, 0, true);
+  context.lineTo(width, 0);
+  context.lineTo(width, height);
+  context.lineTo(0, height);
+  context.closePath();
+}
+
+function drawArtworkImage(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  artwork: ArtworkSettings,
+  rect: Rect
+) {
+  context.fillStyle = artwork.backgroundColor ?? "#ffffff";
+  context.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+  if (artwork.fit === "stretch") {
+    context.drawImage(image, rect.x, rect.y, rect.width, rect.height);
+    return;
+  }
+
+  if (artwork.fit === "repeat") {
+    const tileHeight = rect.height;
+    const tileWidth = image.naturalWidth && image.naturalHeight
+      ? tileHeight * (image.naturalWidth / image.naturalHeight)
+      : tileHeight;
+    for (let x = rect.x; x < rect.x + rect.width; x += tileWidth) {
+      context.drawImage(image, x, rect.y, tileWidth, tileHeight);
+    }
+    return;
+  }
+
+  const targetRatio = rect.width / rect.height;
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const sourceWidth = imageRatio > targetRatio
+    ? image.naturalHeight * targetRatio
+    : image.naturalWidth;
+  const sourceHeight = imageRatio > targetRatio
+    ? image.naturalHeight
+    : image.naturalWidth / targetRatio;
+  const zoom = Math.max(artwork.zoom || 1, 0.01);
+  const visibleSourceWidth = sourceWidth / zoom;
+  const visibleSourceHeight = sourceHeight / zoom;
+  const sourceX =
+    (image.naturalWidth - visibleSourceWidth) / 2 -
+    (artwork.offsetX / 100) * visibleSourceWidth * 0.5;
+  const sourceY =
+    (image.naturalHeight - visibleSourceHeight) / 2 -
+    (artwork.offsetY / 100) * visibleSourceHeight * 0.5;
+
+  context.drawImage(
+    image,
+    Math.max(0, Math.min(image.naturalWidth - visibleSourceWidth, sourceX)),
+    Math.max(0, Math.min(image.naturalHeight - visibleSourceHeight, sourceY)),
+    visibleSourceWidth,
+    visibleSourceHeight,
+    rect.x,
+    rect.y,
+    rect.width,
+    rect.height
+  );
+}
+
+function FaceCanvas({
+  face,
+  width,
+  height,
+  pixelScale,
+  faceResolutionScale,
+  artwork,
+  showThumbNotch,
+  opacity
+}: {
+  face: FaceName;
+  width: number;
+  height: number;
+  pixelScale: number;
+  faceResolutionScale: number;
+  artwork?: ArtworkSettings;
+  showThumbNotch: boolean;
+  opacity: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !artwork) return;
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (cancelled) return;
+      const bitmapWidth = Math.max(
+        1,
+        Math.ceil(width * pixelScale * faceResolutionScale * FACE_RASTER_SCALE)
+      );
+      const bitmapHeight = Math.max(
+        1,
+        Math.ceil(height * pixelScale * faceResolutionScale * FACE_RASTER_SCALE)
+      );
+      canvas.width = bitmapWidth;
+      canvas.height = bitmapHeight;
+
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.clearRect(0, 0, bitmapWidth, bitmapHeight);
+      context.scale(bitmapWidth / width, bitmapHeight / height);
+      clippedFacePath(context, face, width, height, showThumbNotch);
+      context.clip();
+      drawArtworkImage(context, image, artwork, { x: 0, y: 0, width, height });
+    };
+    image.src = artwork.src;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [artwork, face, faceResolutionScale, height, pixelScale, showThumbNotch, width]);
+
+  if (!artwork) return null;
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="assembled-face-canvas"
+      aria-hidden="true"
+      style={{ opacity }}
+    />
+  );
 }
 
 function FaceSvg({
   face,
   width,
   height,
+  pixelScale,
   artwork,
   faceModes,
   faceText,
@@ -44,11 +195,13 @@ function FaceSvg({
   wrapRect,
   wrapViewX,
   opacity,
-  rawId
+  rawId,
+  rasterizedArtwork
 }: {
   face: FaceName;
   width: number;
   height: number;
+  pixelScale: number;
   artwork: ArtworkMap;
   faceModes: FaceModeMap;
   faceText: TextMap;
@@ -59,6 +212,7 @@ function FaceSvg({
   wrapViewX: number;
   opacity: number;
   rawId: string;
+  rasterizedArtwork: boolean;
 }) {
   const localRect = { x: 0, y: 0, width, height };
   const clipId = `${rawId}-${face}-clip`;
@@ -77,11 +231,16 @@ function FaceSvg({
       : height;
   const orientationTransform =
     face === "bottom" ? `rotate(180 ${width / 2} ${height / 2})` : undefined;
+  const intrinsicScale = 3;
+  const intrinsicWidth = Math.max(1, Math.ceil(width * pixelScale * intrinsicScale));
+  const intrinsicHeight = Math.max(1, Math.ceil(height * pixelScale * intrinsicScale));
 
   return (
     <svg
       className="assembled-face-art"
       viewBox={`0 0 ${width} ${height}`}
+      width={intrinsicWidth}
+      height={intrinsicHeight}
       aria-hidden="true"
       preserveAspectRatio="none"
     >
@@ -107,9 +266,9 @@ function FaceSvg({
         </pattern>
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        <rect width={width} height={height} fill="#fff" />
+        {!rasterizedArtwork && <rect width={width} height={height} fill="#fff" />}
         <g transform={orientationTransform}>
-          {usesWrap && wrapArtwork?.fit === "repeat" && (
+          {!rasterizedArtwork && usesWrap && wrapArtwork?.fit === "repeat" && (
             <rect
               x={0}
               y={0}
@@ -119,7 +278,7 @@ function FaceSvg({
               opacity={opacity}
             />
           )}
-          {usesWrap && wrapArtwork?.fit !== "repeat" && (
+          {!rasterizedArtwork && usesWrap && wrapArtwork?.fit !== "repeat" && (
             <g transform={`translate(${-wrapViewX} 0)`}>
               <ArtworkImage
                 rect={wrapRect}
@@ -129,7 +288,7 @@ function FaceSvg({
               />
             </g>
           )}
-          {!usesWrap && (faceModes[face] ?? "image") === "image" && (
+          {!rasterizedArtwork && !usesWrap && (faceModes[face] ?? "image") === "image" && (
             <ArtworkImage
               rect={localRect}
               artwork={artwork[face]}
@@ -167,25 +326,58 @@ export function AssembledBoxPreview({
   const dragged = useRef(false);
   const { width, depth, height } = dimensions;
   const perimeter = 2 * width + 2 * depth;
-  const wrapRect = { x: 0, y: 0, width: perimeter, height };
-  const wrapOffsets: Record<FaceName, number> = {
-    back: 0,
-    left: width,
-    front: width + depth,
-    right: 2 * width + depth,
-    top: 0,
-    bottom: 0
-  };
-  const faceSizes: Record<FaceName, { width: number; height: number }> = {
-    front: { width, height },
-    back: { width, height },
-    left: { width: depth, height },
-    right: { width: depth, height },
-    top: { width, height: depth },
-    bottom: { width, height: depth }
-  };
+  const wrapRect = useMemo(
+    () => ({ x: 0, y: 0, width: perimeter, height }),
+    [height, perimeter]
+  );
+  const wrapOffsets: Record<FaceName, number> = useMemo(
+    () => ({
+      back: 0,
+      left: width,
+      front: width + depth,
+      right: 2 * width + depth,
+      top: 0,
+      bottom: 0
+    }),
+    [depth, width]
+  );
+  const faceSizes: Record<FaceName, { width: number; height: number }> = useMemo(
+    () => ({
+      front: { width, height },
+      back: { width, height },
+      left: { width: depth, height },
+      right: { width: depth, height },
+      top: { width, height: depth },
+      bottom: { width, height: depth }
+    }),
+    [depth, height, width]
+  );
   const opacityForFace = (face: FaceName) =>
     (masterOpacity / 100) * ((faceOpacities[face] ?? 100) / 100);
+  const rasterArtworkByFace = useMemo(() => {
+    const next: Partial<Record<FaceName, ArtworkSettings>> = {};
+    (Object.keys(faceSizes) as FaceName[]).forEach((face) => {
+      const isBody = face === "front" || face === "back" || face === "left" || face === "right";
+      if (isBody && useWrapArtwork && wrapArtwork) {
+        if (wrapArtwork.fit === "repeat") {
+          next[face] = wrapArtwork;
+          return;
+        }
+        const faceSize = faceSizes[face];
+        next[face] = {
+          ...wrapArtwork,
+          offsetX:
+            wrapArtwork.offsetX +
+            ((wrapRect.width / 2 - wrapOffsets[face] - faceSize.width / 2) / faceSize.width) * 200,
+          offsetY: wrapArtwork.offsetY,
+          zoom: wrapArtwork.zoom * (wrapRect.width / faceSize.width)
+        };
+        return;
+      }
+      if ((faceModes[face] ?? "image") === "image") next[face] = artwork[face];
+    });
+    return next;
+  }, [artwork, faceModes, faceSizes, useWrapArtwork, wrapArtwork, wrapOffsets, wrapRect.width]);
   const moveRotation = (deltaX: number, deltaY: number) => {
     setRotation((current) => ({
       x: clampPreviewTilt(current.x - deltaY),
@@ -248,6 +440,7 @@ export function AssembledBoxPreview({
   }, [expanded]);
 
   const renderStage = (large = false) => {
+    const faceResolutionScale = large ? 3 : 2;
     const scale = Math.min(
       (large ? 520 : 76) / width,
       (large ? 390 : 52) / depth,
@@ -257,6 +450,8 @@ export function AssembledBoxPreview({
       "--box-width": `${width * scale}px`,
       "--box-depth": `${depth * scale}px`,
       "--box-height": `${height * scale}px`,
+      "--face-resolution-scale": faceResolutionScale,
+      "--face-resolution-inverse": 1 / faceResolutionScale,
       transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`
     } as CSSProperties;
 
@@ -277,24 +472,38 @@ export function AssembledBoxPreview({
       >
         <div className="assembled-ground-shadow" />
         <div className="assembled-box" style={style} data-rotation-x={rotation.x} data-rotation-y={rotation.y}>
-          {(Object.keys(faceSizes) as FaceName[]).map((face) => (
-            <div className={`assembled-face assembled-face-${face}`} key={face} data-face={face}>
-              <FaceSvg
-                face={face}
-                {...faceSizes[face]}
-                artwork={artwork}
-                faceModes={faceModes}
-                faceText={faceText}
-                showThumbNotch={showThumbNotch}
-                useWrapArtwork={useWrapArtwork}
-                wrapArtwork={wrapArtwork}
-                wrapRect={wrapRect}
-                wrapViewX={wrapOffsets[face]}
-                opacity={opacityForFace(face)}
-                rawId={`${rawId}-${large ? "large" : "small"}`}
-              />
-            </div>
-          ))}
+          {(Object.keys(faceSizes) as FaceName[]).map((face) => {
+            const rasterArtwork = rasterArtworkByFace[face];
+            return (
+              <div className={`assembled-face assembled-face-${face}`} key={face} data-face={face}>
+                <FaceCanvas
+                  face={face}
+                  {...faceSizes[face]}
+                  pixelScale={scale}
+                  faceResolutionScale={faceResolutionScale}
+                  artwork={rasterArtwork}
+                  showThumbNotch={showThumbNotch}
+                  opacity={opacityForFace(face)}
+                />
+                <FaceSvg
+                  face={face}
+                  {...faceSizes[face]}
+                  pixelScale={scale}
+                  artwork={artwork}
+                  faceModes={faceModes}
+                  faceText={faceText}
+                  showThumbNotch={showThumbNotch}
+                  useWrapArtwork={useWrapArtwork}
+                  wrapArtwork={wrapArtwork}
+                  wrapRect={wrapRect}
+                  wrapViewX={wrapOffsets[face]}
+                  opacity={opacityForFace(face)}
+                  rawId={`${rawId}-${large ? "large" : "small"}`}
+                  rasterizedArtwork={Boolean(rasterArtwork)}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     );
