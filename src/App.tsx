@@ -61,6 +61,8 @@ export default function App() {
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>(initialPreferences.bottomClosure);
   const [manualGlueTab, setManualGlueTab] = useState(initialPreferences.manualGlueTab);
   const [glueTabWidth, setGlueTabWidth] = useState(initialPreferences.glueTabWidth);
+  const [manualTuckFlap, setManualTuckFlap] = useState(initialPreferences.manualTuckFlap);
+  const [tuckFlapWidth, setTuckFlapWidth] = useState(initialPreferences.tuckFlapWidth);
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
   const [showPrintLines, setShowPrintLines] = useState(initialPreferences.showPrintLines);
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
@@ -68,6 +70,7 @@ export default function App() {
   const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
   const [showOpacitySettings, setShowOpacitySettings] = useState(false);
   const [showGlueTabSettings, setShowGlueTabSettings] = useState(false);
+  const [showTuckFlapSettings, setShowTuckFlapSettings] = useState(false);
   const [masterOpacity, setMasterOpacity] = useState(initialPreferences.masterOpacity);
   const [faceOpacities, setFaceOpacities] = useState<FaceOpacityMap>(
     initialPreferences.faceOpacities
@@ -93,6 +96,8 @@ export default function App() {
       bottomClosure,
       manualGlueTab,
       glueTabWidth,
+      manualTuckFlap,
+      tuckFlapWidth,
       colorFlaps,
       showPrintLines,
       showThumbNotch,
@@ -114,6 +119,8 @@ export default function App() {
     bottomClosure,
     manualGlueTab,
     glueTabWidth,
+    manualTuckFlap,
+    tuckFlapWidth,
     colorFlaps,
     showPrintLines,
     showThumbNotch,
@@ -153,9 +160,10 @@ export default function App() {
       calculateDieline(
         dimensionsMm,
         bottomClosure,
-        manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined
+        manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined,
+        manualTuckFlap ? toMillimeters(tuckFlapWidth, unit) : undefined
       ),
-    [dimensionsMm, bottomClosure, manualGlueTab, glueTabWidth, unit]
+    [dimensionsMm, bottomClosure, manualGlueTab, glueTabWidth, manualTuckFlap, tuckFlapWidth, unit]
   );
   const printPercentageValid =
     Number.isFinite(printPercentage) &&
@@ -187,6 +195,7 @@ export default function App() {
         fillPage,
         bottomClosure,
         manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined,
+        manualTuckFlap ? toMillimeters(tuckFlapWidth, unit) : undefined,
         effectivePrintScale
       ),
     [
@@ -196,6 +205,8 @@ export default function App() {
       bottomClosure,
       manualGlueTab,
       glueTabWidth,
+      manualTuckFlap,
+      tuckFlapWidth,
       unit,
       effectivePrintScale
     ]
@@ -212,6 +223,18 @@ export default function App() {
     unit === "in" ? 2 : 50,
     dimensions.depth * 2,
     displayedGlueTabWidth
+  );
+  const displayedTuckFlapWidth = manualTuckFlap
+    ? tuckFlapWidth
+    : fromMillimeters(rawGeometry.tuckLip, unit);
+  const displayedTuckFlapValue = Number(
+    displayedTuckFlapWidth.toFixed(unit === "in" ? 2 : 1)
+  );
+  const tuckFlapInputWidth = `calc(${String(displayedTuckFlapValue).length}ch + 5.5rem)`;
+  const tuckFlapSliderMax = Math.max(
+    unit === "in" ? 2 : 50,
+    dimensions.depth * 2,
+    displayedTuckFlapWidth
   );
   const dimensionsValid = Object.values(dimensionsMm).every(
     (value) => Number.isFinite(value) && value > 0
@@ -689,7 +712,7 @@ export default function App() {
                     onClick={() => setShowOpacitySettings((current) => !current)}
                   >
                     <span>Set image opacity</span>
-                    <span aria-hidden="true">{showOpacitySettings ? "−" : "+"}</span>
+                    <span aria-hidden="true">{showOpacitySettings ? "-" : "+"}</span>
                   </button>
                   {showOpacitySettings && (
                     <div className="opacity-settings-panel">
@@ -768,7 +791,7 @@ export default function App() {
                     onClick={() => setShowGlueTabSettings((current) => !current)}
                   >
                     <span>Glue flap width</span>
-                    <span aria-hidden="true">{showGlueTabSettings ? "−" : "+"}</span>
+                    <span aria-hidden="true">{showGlueTabSettings ? "-" : "+"}</span>
                   </button>
                   {showGlueTabSettings && (
                     <div className="nested-settings-panel">
@@ -812,6 +835,64 @@ export default function App() {
                               value={displayedGlueTabValue}
                               disabled={!manualGlueTab}
                               onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                            />
+                            <b>{unit}</b>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="nested-settings-button"
+                    type="button"
+                    aria-expanded={showTuckFlapSettings}
+                    onClick={() => setShowTuckFlapSettings((current) => !current)}
+                  >
+                    <span>Tuck flap width</span>
+                    <span aria-hidden="true">{showTuckFlapSettings ? "-" : "+"}</span>
+                  </button>
+                  {showTuckFlapSettings && (
+                    <div className="nested-settings-panel">
+                      <div className="nested-settings-heading">
+                        <span>
+                          Tuck flap width
+                          <small>{manualTuckFlap ? "Manual override" : "Automatic"}</small>
+                        </span>
+                      </div>
+                      <div className="field glue-tab-field">
+                        <label className="manual-glue-toggle">
+                          <input
+                            type="checkbox"
+                            checked={manualTuckFlap}
+                            onChange={(event) => {
+                              const checked = event.target.checked;
+                              if (checked) {
+                                setTuckFlapWidth(fromMillimeters(rawGeometry.tuckLip, unit));
+                              }
+                              setManualTuckFlap(checked);
+                            }}
+                          />
+                          Set manually
+                        </label>
+                        <div className="glue-tab-slider">
+                          <input
+                            type="range"
+                            min={unit === "in" ? 0.01 : 0.1}
+                            max={tuckFlapSliderMax}
+                            step={unit === "in" ? 0.01 : 0.1}
+                            value={displayedTuckFlapWidth}
+                            disabled={!manualTuckFlap}
+                            onChange={(event) => setTuckFlapWidth(Number(event.target.value))}
+                            aria-label="Tuck flap width"
+                          />
+                          <div className="number-input glue-tab-number" style={{ width: tuckFlapInputWidth }}>
+                            <input
+                              type="number"
+                              min={unit === "in" ? 0.01 : 0.1}
+                              step={unit === "in" ? 0.01 : 0.1}
+                              value={displayedTuckFlapValue}
+                              disabled={!manualTuckFlap}
+                              onChange={(event) => setTuckFlapWidth(Number(event.target.value))}
                             />
                             <b>{unit}</b>
                           </div>
@@ -1031,3 +1112,4 @@ export default function App() {
     </main>
   );
 }
+

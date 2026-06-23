@@ -751,13 +751,20 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   border-color: #b9c8be;
   background: #f1f5f1;
 }
+.nested-settings-button[aria-expanded="true"] {
+  border-bottom-color: #e0e4e1;
+  border-radius: 5px 5px 0 0;
+  background: #f8f9f6;
+}
 .nested-settings-panel,
 .opacity-settings-panel {
   display: grid;
   gap: 12px;
+  margin-top: -10px;
   padding: 10px;
   border: 1px solid #e0e4e1;
-  border-radius: 5px;
+  border-top: 0;
+  border-radius: 0 0 5px 5px;
   background: #f8f9f6;
 }
 .nested-settings-heading,

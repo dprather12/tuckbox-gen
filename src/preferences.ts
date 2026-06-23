@@ -24,6 +24,8 @@ export interface Preferences {
   bottomClosure: BottomClosure;
   manualGlueTab: boolean;
   glueTabWidth: number;
+  manualTuckFlap: boolean;
+  tuckFlapWidth: number;
   colorFlaps: boolean;
   showPrintLines: boolean;
   showThumbNotch: boolean;
@@ -63,6 +65,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   bottomClosure: "glued",
   manualGlueTab: false,
   glueTabWidth: 0.6,
+  manualTuckFlap: false,
+  tuckFlapWidth: 0.45,
   colorFlaps: true,
   showPrintLines: true,
   showThumbNotch: true,
@@ -159,6 +163,12 @@ export function loadPreferences(): Preferences {
       glueTabWidth: isPositiveNumber(stored.glueTabWidth)
         ? stored.glueTabWidth
         : DEFAULT_PREFERENCES.glueTabWidth,
+      manualTuckFlap: typeof stored.manualTuckFlap === "boolean"
+        ? stored.manualTuckFlap
+        : DEFAULT_PREFERENCES.manualTuckFlap,
+      tuckFlapWidth: isPositiveNumber(stored.tuckFlapWidth)
+        ? stored.tuckFlapWidth
+        : DEFAULT_PREFERENCES.tuckFlapWidth,
       colorFlaps: typeof stored.colorFlaps === "boolean"
         ? stored.colorFlaps
         : DEFAULT_PREFERENCES.colorFlaps,

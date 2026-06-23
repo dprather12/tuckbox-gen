@@ -33,7 +33,8 @@ export function fromMillimeters(value: number, unit: Unit): number {
 export function calculateDieline(
   dimensions: BoxDimensions,
   bottomClosure: BottomClosure = "tuck",
-  glueTabOverride?: number
+  glueTabOverride?: number,
+  tuckLipOverride?: number
 ): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
   const automaticGlueTab = Math.min(d * 0.95, MAX_GLUE_TAB_MM);
@@ -41,7 +42,11 @@ export function calculateDieline(
     glueTabOverride !== undefined && Number.isFinite(glueTabOverride) && glueTabOverride > 0
       ? glueTabOverride
       : automaticGlueTab;
-  const tuckLip = Math.min(MAX_FLAP_MM, Math.max(9, d * 0.9));
+  const automaticTuckLip = Math.min(MAX_FLAP_MM, Math.max(9, d * 0.9));
+  const tuckLip =
+    tuckLipOverride !== undefined && Number.isFinite(tuckLipOverride) && tuckLipOverride > 0
+      ? tuckLipOverride
+      : automaticTuckLip;
   const topFlapDepth = d + tuckLip;
   const bottomFlapDepth = bottomClosure === "tuck" ? d + tuckLip : d;
   const flapDepth = topFlapDepth;
@@ -210,10 +215,11 @@ export function geometryForPage(
   paper: Paper,
   bottomClosure: BottomClosure = "tuck",
   glueTabOverride?: number,
+  tuckLipOverride?: number,
   scale = 1
 ): DielineGeometry {
   const geometry = scaleDielineGeometry(
-    calculateDieline(dimensions, bottomClosure, glueTabOverride),
+    calculateDieline(dimensions, bottomClosure, glueTabOverride, tuckLipOverride),
     scale
   );
   return {
@@ -229,14 +235,15 @@ export function geometriesForPage(
   fillPage: boolean,
   bottomClosure: BottomClosure = "tuck",
   glueTabOverride?: number,
+  tuckLipOverride?: number,
   scale = 1
 ): DielineGeometry[] {
   if (!fillPage) {
-    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, scale)];
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, tuckLipOverride, scale)];
   }
 
   const geometry = scaleDielineGeometry(
-    calculateDieline(dimensions, bottomClosure, glueTabOverride),
+    calculateDieline(dimensions, bottomClosure, glueTabOverride, tuckLipOverride),
     scale
   );
   const footprintWidth = geometry.totalWidth + COPY_GAP_MM;
@@ -249,7 +256,7 @@ export function geometriesForPage(
   );
 
   if (columns < 1 || rows < 1) {
-    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, scale)];
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, tuckLipOverride, scale)];
   }
 
   const layoutWidth = columns * geometry.totalWidth + (columns - 1) * COPY_GAP_MM;
