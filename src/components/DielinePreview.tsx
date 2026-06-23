@@ -13,6 +13,7 @@ import type {
   DielineGeometry,
   FaceModeMap,
   FaceName,
+  FaceOpacityMap,
   Paper,
   Rect,
   TextMap
@@ -30,6 +31,8 @@ interface Props {
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
+  masterOpacity: number;
+  faceOpacities: FaceOpacityMap;
   onArtworkPositionChange: (
     target: FaceName | "wrap",
     offsetX: number,
@@ -101,6 +104,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     showThumbNotch,
     useWrapArtwork,
     wrapArtwork,
+    masterOpacity,
+    faceOpacities,
     onArtworkPositionChange
   }, ref) => {
     const rawId = useId().replace(/:/g, "");
@@ -167,6 +172,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const gluePoints = `${glueX},${py + g.bodyY} ${glueX - g.glueTab},${py + g.bodyY + 4} ${glueX - g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
     const imageForFace = (face: FaceName) =>
       (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;
+    const opacityForFace = (face: FaceName) =>
+      (masterOpacity / 100) * ((faceOpacities[face] ?? 100) / 100);
     const draggableFaces = faces.filter(
       ([face]) =>
         !(useWrapArtwork && ["front", "back", "left", "right"].includes(face)) &&
@@ -306,15 +313,30 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
 
         <g id={`${rawId}-dieline-copy`}>
         <g id="artwork">
-          {wrapArtwork?.fit === "repeat" && (
-            <rect {...bodyRect} fill={`url(#${rawId}-wrap-pattern)`} />
+          {useWrapArtwork && wrapArtwork?.fit === "repeat" && (
+            faces
+              .filter(([face]) => ["front", "back", "left", "right"].includes(face))
+              .map(([face, rect]) => (
+                <rect
+                  key={`wrap-repeat-${face}`}
+                  {...rect}
+                  fill={`url(#${rawId}-wrap-pattern)`}
+                  opacity={opacityForFace(face)}
+                />
+              ))
           )}
-          {wrapArtwork && wrapArtwork.fit !== "repeat" && (
-            <ArtworkImage
-              rect={bodyRect}
-              artwork={wrapArtwork}
-              clipId={`${rawId}-body-wrap`}
-            />
+          {useWrapArtwork && wrapArtwork && wrapArtwork.fit !== "repeat" && (
+            faces
+              .filter(([face]) => ["front", "back", "left", "right"].includes(face))
+              .map(([face]) => (
+                <ArtworkImage
+                  key={`wrap-${face}`}
+                  rect={bodyRect}
+                  artwork={wrapArtwork}
+                  clipId={`${rawId}-${face}`}
+                  opacity={opacityForFace(face)}
+                />
+              ))
           )}
           {faces.map(([face, rect]) => (
             useWrapArtwork && ["front", "back", "left", "right"].includes(face) ? null :
@@ -323,6 +345,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               rect={rect}
               artwork={imageForFace(face)}
               clipId={`${rawId}-${face}`}
+              opacity={opacityForFace(face)}
             />
           ))}
           {faces.map(([face, rect]) => (
@@ -333,6 +356,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                 rect={rect}
                 settings={faceText[face]}
                 clipId={`${rawId}-${face}`}
+                opacity={opacityForFace(face)}
               />
             ) : null
           ))}

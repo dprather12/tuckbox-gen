@@ -230,6 +230,11 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   padding-top: 10px;
   border-top: 1px solid #e0e4e1;
 }
+.nested-settings-panel .glue-tab-field {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 .manual-glue-toggle { display: flex; align-items: center; gap: 7px; color: #42564b; font-size: .75rem; }
 .glue-tab-slider { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 10px; align-items: center; }
 .glue-tab-slider > input { width: 100%; accent-color: #355b48; }
@@ -664,6 +669,84 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   min-width: 4rem;
   width: 100%;
   accent-color: auto;
+}
+.nested-settings-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #d4dad5;
+  border-radius: 5px;
+  color: #53645b;
+  background: #f8f9f6;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.nested-settings-button:hover {
+  border-color: #b9c8be;
+  background: #f1f5f1;
+}
+.nested-settings-panel,
+.opacity-settings-panel {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #e0e4e1;
+  border-radius: 5px;
+  background: #f8f9f6;
+}
+.nested-settings-heading,
+.opacity-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #53645b;
+  font-size: .72rem;
+  font-weight: 800;
+}
+.nested-settings-heading > span,
+.opacity-settings-heading > span {
+  display: grid;
+  gap: 2px;
+}
+.nested-settings-heading small,
+.opacity-settings-heading small {
+  color: #8a9890;
+  font-size: .65rem;
+  font-weight: 500;
+}
+.face-opacity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.more-settings-content .opacity-field {
+  display: grid;
+  gap: 6px;
+  cursor: default;
+}
+.more-settings-content .opacity-field > span {
+  color: #53645b;
+  font-size: .72rem;
+}
+.opacity-slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 8px;
+  align-items: center;
+}
+.opacity-slider > input {
+  width: 100%;
+  accent-color: #355b48;
+}
+.opacity-number input {
+  min-width: 0;
+  padding: 6px 4px 6px 7px;
+}
+.opacity-number b {
+  padding: 0 7px;
 }
 .more-settings-content input { accent-color: #315a46; }
 .wrap-art-card { grid-column: 1 / -1; }

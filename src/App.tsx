@@ -25,6 +25,7 @@ import type {
   FaceContentMode,
   FaceModeMap,
   FaceName,
+  FaceOpacityMap,
   Orientation,
   PaperDimensions,
   PaperSize,
@@ -35,6 +36,14 @@ import type {
 
 const faces: FaceName[] = ["front", "back", "left", "right", "top", "bottom"];
 const INTERNAL_PRINT_BASELINE = 1.05;
+const faceLabels: Record<FaceName, string> = {
+  front: "Front",
+  back: "Back",
+  left: "Left side",
+  right: "Right side",
+  top: "Top",
+  bottom: "Bottom"
+};
 
 export default function App() {
   const [initialPreferences] = useState(loadPreferences);
@@ -57,6 +66,12 @@ export default function App() {
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
   const [fillPage, setFillPage] = useState(initialPreferences.fillPage);
   const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
+  const [showOpacitySettings, setShowOpacitySettings] = useState(false);
+  const [showGlueTabSettings, setShowGlueTabSettings] = useState(false);
+  const [masterOpacity, setMasterOpacity] = useState(initialPreferences.masterOpacity);
+  const [faceOpacities, setFaceOpacities] = useState<FaceOpacityMap>(
+    initialPreferences.faceOpacities
+  );
   const [showDimensionCalculator, setShowDimensionCalculator] = useState(false);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
   const [faceModes, setFaceModes] = useState<FaceModeMap>(initialPreferences.faceModes);
@@ -84,7 +99,9 @@ export default function App() {
       fillPage,
       showMoreSettings,
       useWrapArtwork,
-      faceModes
+      faceModes,
+      masterOpacity,
+      faceOpacities
     });
   }, [
     unit,
@@ -103,7 +120,9 @@ export default function App() {
     fillPage,
     showMoreSettings,
     useWrapArtwork,
-    faceModes
+    faceModes,
+    masterOpacity,
+    faceOpacities
   ]);
 
   const dimensionsMm = useMemo(
@@ -266,6 +285,20 @@ export default function App() {
     setCustomPaperDimensions((current) => ({
       ...current,
       [key]: toMillimeters(Number(value), unit)
+    }));
+  };
+
+  const clampOpacity = (value: number) =>
+    Math.min(100, Math.max(0, Number.isFinite(value) ? value : 100));
+
+  const updateMasterOpacity = (value: string) => {
+    setMasterOpacity(clampOpacity(Number(value)));
+  };
+
+  const updateFaceOpacity = (face: FaceName, value: string) => {
+    setFaceOpacities((current) => ({
+      ...current,
+      [face]: clampOpacity(Number(value))
     }));
   };
 
@@ -623,7 +656,7 @@ export default function App() {
                       checked={useWrapArtwork}
                       onChange={(event) => setUseWrapArtwork(event.target.checked)}
                     />
-                    Use one image to wrap around the front, back and sides
+                    Use a single image to wrap around the front, back and sides
                   </label>
                   <label>
                     <input
@@ -649,49 +682,143 @@ export default function App() {
                     />
                     Include front cutout notch
                   </label>
-                  <div className="field glue-tab-field">
-                    <span>
-                      Glue flap width
-                      <small>{manualGlueTab ? "Manual override" : "Automatic"}</small>
-                    </span>
-                    <label className="manual-glue-toggle">
-                      <input
-                        type="checkbox"
-                        checked={manualGlueTab}
-                        onChange={(event) => {
-                          const checked = event.target.checked;
-                          if (checked) {
-                            setGlueTabWidth(fromMillimeters(rawGeometry.glueTab, unit));
-                          }
-                          setManualGlueTab(checked);
-                        }}
-                      />
-                      Set manually
-                    </label>
-                    <div className="glue-tab-slider">
-                      <input
-                        type="range"
-                        min={unit === "in" ? 0.01 : 0.1}
-                        max={glueTabSliderMax}
-                        step={unit === "in" ? 0.01 : 0.1}
-                        value={displayedGlueTabWidth}
-                        disabled={!manualGlueTab}
-                        onChange={(event) => setGlueTabWidth(Number(event.target.value))}
-                        aria-label="Glue flap width"
-                      />
-                      <div className="number-input glue-tab-number" style={{ width: glueTabInputWidth }}>
-                        <input
-                          type="number"
-                          min={unit === "in" ? 0.01 : 0.1}
-                          step={unit === "in" ? 0.01 : 0.1}
-                          value={displayedGlueTabValue}
-                          disabled={!manualGlueTab}
-                          onChange={(event) => setGlueTabWidth(Number(event.target.value))}
-                        />
-                        <b>{unit}</b>
+                  <button
+                    className="nested-settings-button"
+                    type="button"
+                    aria-expanded={showOpacitySettings}
+                    onClick={() => setShowOpacitySettings((current) => !current)}
+                  >
+                    <span>Set image opacity</span>
+                    <span aria-hidden="true">{showOpacitySettings ? "−" : "+"}</span>
+                  </button>
+                  {showOpacitySettings && (
+                    <div className="opacity-settings-panel">
+                      <div className="opacity-settings-heading">
+                        <span>Opacity</span>
+                      </div>
+                      <label className="field opacity-field">
+                        <span>
+                          Master opacity
+                          <small>{masterOpacity}%</small>
+                        </span>
+                        <div className="opacity-slider">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={masterOpacity}
+                            onChange={(event) => updateMasterOpacity(event.target.value)}
+                          />
+                          <div className="number-input opacity-number">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={masterOpacity}
+                              onChange={(event) => updateMasterOpacity(event.target.value)}
+                              aria-label="Master opacity"
+                            />
+                            <b>%</b>
+                          </div>
+                        </div>
+                      </label>
+                      <div className="face-opacity-grid">
+                        {faces.map((face) => {
+                          const opacity = faceOpacities[face] ?? 100;
+                          return (
+                            <label className="field opacity-field" key={face}>
+                              <span>
+                                {faceLabels[face]}
+                                <small>{opacity}%</small>
+                              </span>
+                              <div className="opacity-slider">
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  step="1"
+                                  value={opacity}
+                                  onChange={(event) => updateFaceOpacity(face, event.target.value)}
+                                />
+                                <div className="number-input opacity-number">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value={opacity}
+                                    onChange={(event) => updateFaceOpacity(face, event.target.value)}
+                                    aria-label={`${faceLabels[face]} opacity`}
+                                  />
+                                  <b>%</b>
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
-                  </div>
+                  )}
+                  <button
+                    className="nested-settings-button"
+                    type="button"
+                    aria-expanded={showGlueTabSettings}
+                    onClick={() => setShowGlueTabSettings((current) => !current)}
+                  >
+                    <span>Glue flap width</span>
+                    <span aria-hidden="true">{showGlueTabSettings ? "−" : "+"}</span>
+                  </button>
+                  {showGlueTabSettings && (
+                    <div className="nested-settings-panel">
+                      <div className="nested-settings-heading">
+                        <span>
+                          Glue flap width
+                          <small>{manualGlueTab ? "Manual override" : "Automatic"}</small>
+                        </span>
+                      </div>
+                      <div className="field glue-tab-field">
+                        <label className="manual-glue-toggle">
+                          <input
+                            type="checkbox"
+                            checked={manualGlueTab}
+                            onChange={(event) => {
+                              const checked = event.target.checked;
+                              if (checked) {
+                                setGlueTabWidth(fromMillimeters(rawGeometry.glueTab, unit));
+                              }
+                              setManualGlueTab(checked);
+                            }}
+                          />
+                          Set manually
+                        </label>
+                        <div className="glue-tab-slider">
+                          <input
+                            type="range"
+                            min={unit === "in" ? 0.01 : 0.1}
+                            max={glueTabSliderMax}
+                            step={unit === "in" ? 0.01 : 0.1}
+                            value={displayedGlueTabWidth}
+                            disabled={!manualGlueTab}
+                            onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                            aria-label="Glue flap width"
+                          />
+                          <div className="number-input glue-tab-number" style={{ width: glueTabInputWidth }}>
+                            <input
+                              type="number"
+                              min={unit === "in" ? 0.01 : 0.1}
+                              step={unit === "in" ? 0.01 : 0.1}
+                              value={displayedGlueTabValue}
+                              disabled={!manualGlueTab}
+                              onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                            />
+                            <b>{unit}</b>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -803,6 +930,8 @@ export default function App() {
                 showThumbNotch={showThumbNotch}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
+                masterOpacity={masterOpacity}
+                faceOpacities={faceOpacities}
               />
             )}
           </div>
@@ -837,6 +966,8 @@ export default function App() {
                 showThumbNotch={showThumbNotch}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
+                masterOpacity={masterOpacity}
+                faceOpacities={faceOpacities}
                 onArtworkPositionChange={updateArtworkPosition}
               />
             </div>

@@ -141,13 +141,15 @@ export function ArtworkImage({
   artwork,
   clipId,
   maskId,
-  transform
+  transform,
+  opacity = 1
 }: {
   rect: Rect;
   artwork?: ArtworkSettings;
   clipId: string;
   maskId?: string;
   transform?: string;
+  opacity?: number;
 }) {
   if (!artwork) return null;
 
@@ -163,6 +165,7 @@ export function ArtworkImage({
         clipPath={`url(#${clipId})`}
         mask={maskId ? `url(#${maskId})` : undefined}
         transform={transform}
+        opacity={opacity}
       />
     );
   }
@@ -177,6 +180,7 @@ export function ArtworkImage({
       clipPath={`url(#${clipId})`}
       mask={maskId ? `url(#${maskId})` : undefined}
       transform={transform}
+      opacity={opacity}
     >
       <rect
         x={rect.x}
@@ -200,11 +204,13 @@ export function ArtworkImage({
 export function FaceText({
   rect,
   settings,
-  clipId
+  clipId,
+  opacity = 1
 }: {
   rect: Rect;
   settings?: TextSettings;
   clipId: string;
+  opacity?: number;
 }) {
   if (!settings?.content.trim()) return null;
 
@@ -244,7 +250,7 @@ export function FaceText({
   let currentY = startY;
 
   return (
-    <g clipPath={`url(#${clipId})`}>
+    <g clipPath={`url(#${clipId})`} opacity={opacity}>
       <g
         transform={
           orientation === "vertical"

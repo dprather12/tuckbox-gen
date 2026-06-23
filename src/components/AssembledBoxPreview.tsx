@@ -5,6 +5,7 @@ import type {
   BoxDimensions,
   FaceModeMap,
   FaceName,
+  FaceOpacityMap,
   Rect,
   TextMap
 } from "../types";
@@ -18,6 +19,8 @@ interface Props {
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
+  masterOpacity: number;
+  faceOpacities: FaceOpacityMap;
 }
 
 const DEFAULT_ROTATION = { x: -18, y: 30 };
@@ -40,6 +43,7 @@ function FaceSvg({
   wrapArtwork,
   wrapRect,
   wrapViewX,
+  opacity,
   rawId
 }: {
   face: FaceName;
@@ -53,6 +57,7 @@ function FaceSvg({
   wrapArtwork?: ArtworkSettings;
   wrapRect: Rect;
   wrapViewX: number;
+  opacity: number;
   rawId: string;
 }) {
   const localRect = { x: 0, y: 0, width, height };
@@ -111,6 +116,7 @@ function FaceSvg({
               width={width}
               height={height}
               fill={`url(#${patternId})`}
+              opacity={opacity}
             />
           )}
           {usesWrap && wrapArtwork?.fit !== "repeat" && (
@@ -119,6 +125,7 @@ function FaceSvg({
                 rect={wrapRect}
                 artwork={wrapArtwork}
                 clipId={wrapClipId}
+                opacity={opacity}
               />
             </g>
           )}
@@ -127,10 +134,11 @@ function FaceSvg({
               rect={localRect}
               artwork={artwork[face]}
               clipId={clipId}
+              opacity={opacity}
             />
           )}
           {!usesWrap && (faceModes[face] ?? "image") === "text" && (
-            <FaceText rect={localRect} settings={faceText[face]} clipId={clipId} />
+            <FaceText rect={localRect} settings={faceText[face]} clipId={clipId} opacity={opacity} />
           )}
         </g>
         <rect width={width} height={height} className="assembled-face-shade" />
@@ -147,7 +155,9 @@ export function AssembledBoxPreview({
   faceText,
   showThumbNotch,
   useWrapArtwork,
-  wrapArtwork
+  wrapArtwork,
+  masterOpacity,
+  faceOpacities
 }: Props) {
   const rawId = useId().replace(/:/g, "");
   const [rotation, setRotation] = useState(DEFAULT_ROTATION);
@@ -174,6 +184,8 @@ export function AssembledBoxPreview({
     top: { width, height: depth },
     bottom: { width, height: depth }
   };
+  const opacityForFace = (face: FaceName) =>
+    (masterOpacity / 100) * ((faceOpacities[face] ?? 100) / 100);
   const moveRotation = (deltaX: number, deltaY: number) => {
     setRotation((current) => ({
       x: clampPreviewTilt(current.x - deltaY),
@@ -278,6 +290,7 @@ export function AssembledBoxPreview({
                 wrapArtwork={wrapArtwork}
                 wrapRect={wrapRect}
                 wrapViewX={wrapOffsets[face]}
+                opacity={opacityForFace(face)}
                 rawId={`${rawId}-${large ? "large" : "small"}`}
               />
             </div>

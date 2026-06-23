@@ -63,6 +63,7 @@ export interface TextSettings {
 
 export type TextMap = Partial<Record<FaceName, TextSettings>>;
 export type FaceModeMap = Partial<Record<FaceName, FaceContentMode>>;
+export type FaceOpacityMap = Partial<Record<FaceName, number>>;
 
 export interface Rect {
   x: number;

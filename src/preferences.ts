@@ -3,6 +3,8 @@ import type {
   BoxDimensions,
   DimensionCalculatorSettings,
   FaceModeMap,
+  FaceName,
+  FaceOpacityMap,
   Orientation,
   PaperDimensions,
   PaperSize,
@@ -29,6 +31,8 @@ export interface Preferences {
   showMoreSettings: boolean;
   useWrapArtwork: boolean;
   faceModes: FaceModeMap;
+  masterOpacity: number;
+  faceOpacities: FaceOpacityMap;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -65,11 +69,18 @@ export const DEFAULT_PREFERENCES: Preferences = {
   fillPage: true,
   showMoreSettings: false,
   useWrapArtwork: false,
-  faceModes: {}
+  faceModes: {},
+  masterOpacity: 100,
+  faceOpacities: {}
 };
 
 const isPositiveNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
+
+const faceNames: FaceName[] = ["front", "back", "left", "right", "top", "bottom"];
+
+const isOpacity = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
 
 export function loadPreferences(): Preferences {
   if (typeof window === "undefined") return DEFAULT_PREFERENCES;
@@ -80,6 +91,7 @@ export function loadPreferences(): Preferences {
     const dimensionCalculator = stored.dimensionCalculator as Partial<DimensionCalculatorSettings> | undefined;
     const customPaperDimensions = stored.customPaperDimensions as Partial<PaperDimensions> | undefined;
     const faceModes = stored.faceModes as Record<string, unknown> | undefined;
+    const faceOpacities = stored.faceOpacities as Record<string, unknown> | undefined;
 
     return {
       unit: stored.unit === "mm" || stored.unit === "in" ? stored.unit : DEFAULT_PREFERENCES.unit,
@@ -168,10 +180,18 @@ export function loadPreferences(): Preferences {
       faceModes: Object.fromEntries(
         Object.entries(faceModes ?? {}).filter(
           ([face, mode]) =>
-            ["front", "back", "left", "right", "top", "bottom"].includes(face) &&
+            faceNames.includes(face as FaceName) &&
             (mode === "image" || mode === "text")
         )
-      ) as FaceModeMap
+      ) as FaceModeMap,
+      masterOpacity: isOpacity(stored.masterOpacity)
+        ? stored.masterOpacity
+        : DEFAULT_PREFERENCES.masterOpacity,
+      faceOpacities: Object.fromEntries(
+        Object.entries(faceOpacities ?? {}).filter(
+          ([face, opacity]) => faceNames.includes(face as FaceName) && isOpacity(opacity)
+        )
+      ) as FaceOpacityMap
     };
   } catch {
     return DEFAULT_PREFERENCES;
