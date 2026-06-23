@@ -249,9 +249,9 @@ export function AssembledBoxPreview({
 
   const renderStage = (large = false) => {
     const scale = Math.min(
-      (large ? 380 : 76) / width,
-      (large ? 280 : 52) / depth,
-      (large ? 390 : 72) / height
+      (large ? 520 : 76) / width,
+      (large ? 390 : 52) / depth,
+      (large ? 540 : 72) / height
     );
     const style = {
       "--box-width": `${width * scale}px`,

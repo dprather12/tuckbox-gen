@@ -974,13 +974,9 @@ export default function App() {
           </div>
 
           <section className="export-card">
-            <div>
-              <h2>Download template</h2>
-              <p className="print-instruction">
-                Print at Actual size / 100% and disable “Fit to page.” Use Scaling
-                to fine-tune the finished box without changing your printer settings.
-              </p>
-            </div>
+            <p className="print-instruction">
+              Print a test sheet first to check whether your printer needs a small scaling adjustment.
+            </p>
             <div className="export-controls">
               <label className="print-percentage-field">
                 <span>Scaling</span>

@@ -238,7 +238,13 @@ export function FaceText({
     usedHeight += lineHeights[index];
     return true;
   });
-  const startY = layoutRect.y + (layoutRect.height - usedHeight) / 2;
+  const verticalAlign = settings.verticalAlign ?? "center";
+  const startY =
+    verticalAlign === "top"
+      ? layoutRect.y + padding
+      : verticalAlign === "bottom"
+        ? layoutRect.y + layoutRect.height - padding - usedHeight
+        : layoutRect.y + (layoutRect.height - usedHeight) / 2;
   const x =
     settings.align === "left"
       ? layoutRect.x + padding

@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Placeholder from "@tiptap/extension-placeholder";
+import { TextStyleKit } from "@tiptap/extension-text-style";
 import type {
   ArtworkSettings,
   FaceContentMode,
@@ -35,12 +40,19 @@ function defaultText(face: FaceName): TextSettings {
     fontSize: 16,
     color: "#17231d",
     align: "center",
+    verticalAlign: "center",
     orientation: face === "left" || face === "right" ? "vertical" : "horizontal",
     mirrorVertical: false,
     bold: false,
     italic: false,
     underline: false
   };
+}
+
+function parseEditorFontSize(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export function ArtworkControl({
@@ -53,26 +65,111 @@ export function ArtworkControl({
   text,
   onTextChange
 }: Props) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fontSizeRef = useRef<HTMLInputElement>(null);
-  const selectionRef = useRef<Range | null>(null);
   const dragDepthRef = useRef(0);
   const faceDefaults = face === "wrap" ? undefined : defaultText(face);
-  const textSettings = text ?? faceDefaults;
+  const textSettings = faceDefaults ? { ...faceDefaults, ...text } : undefined;
+  const latestTextRef = useRef<TextSettings | undefined>(textSettings);
   const [fontSizeInput, setFontSizeInput] = useState(String(textSettings?.fontSize ?? 16));
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [editorTick, setEditorTick] = useState(0);
+  const fontSizeInputFocused = useRef(false);
 
   useEffect(() => {
-    if (!editorRef.current || face === "wrap") return;
-    const nextHtml = text?.html ?? text?.content ?? "";
-    if (editorRef.current.innerHTML !== nextHtml) {
-      editorRef.current.innerHTML = nextHtml;
+    latestTextRef.current = textSettings;
+  }, [textSettings]);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      TextStyleKit.configure({
+        backgroundColor: false,
+        lineHeight: false
+      }),
+      Placeholder.configure({
+        placeholder: "Enter text for this face"
+      })
+    ],
+    content: text?.html ?? text?.content ?? "",
+    editorProps: {
+      attributes: {
+        class: "rich-text-prosemirror",
+        "aria-label": face === "wrap" ? "Panel text" : `${LABELS[face]} text`
+      }
+    },
+    onUpdate: ({ editor }) => {
+      if (face === "wrap") return;
+      setEditorTick((t) => t + 1);
+      const current = latestTextRef.current;
+      onTextChange?.({
+        ...defaultText(face),
+        ...current,
+        html: editor.getHTML(),
+        content: editor.getText()
+      });
+    },
+    onSelectionUpdate: () => {
+      setEditorTick((t) => t + 1);
     }
-  }, [face, text?.content, text?.html]);
+  }, [face]);
 
   useEffect(() => {
-    setFontSizeInput(String(textSettings?.fontSize ?? 16));
-  }, [textSettings?.fontSize]);
+    if (!editor || face === "wrap") return;
+    const nextHtml = text?.html ?? text?.content ?? "";
+    if ((nextHtml || "<p></p>") !== editor.getHTML()) {
+      editor.commands.setContent(nextHtml, { emitUpdate: false });
+    }
+  }, [editor, face, text?.content, text?.html]);
+
+  // Derive formatting state directly from the editor so toolbar buttons
+  // always reflect the actual selection, not a separate state variable.
+  const isBold = editor?.isActive("bold") ?? false;
+  const isItalic = editor?.isActive("italic") ?? false;
+  const isUnderline = editor?.isActive("underline") ?? false;
+  const currentColor = (editor?.getAttributes("textStyle").color as string | undefined)
+    ?? textSettings?.color ?? "#17231d";
+  const currentFontFamily = (editor?.getAttributes("textStyle").fontFamily as string | undefined)
+    ?? textSettings?.fontFamily ?? "Arial";
+  const currentFontSize = parseEditorFontSize(
+    editor?.getAttributes("textStyle").fontSize as string | undefined,
+    textSettings?.fontSize ?? 16
+  );
+
+  // Keep the font size input in sync with the cursor position,
+  // but not while the user is actively typing in that field.
+  useEffect(() => {
+    if (!fontSizeInputFocused.current) {
+      setFontSizeInput(String(currentFontSize));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorTick]);
+
+  const patchText = (next: Partial<TextSettings>) => {
+    if (face === "wrap") return;
+    const nextText = { ...defaultText(face), ...latestTextRef.current, ...next };
+    latestTextRef.current = nextText;
+    onTextChange?.(nextText);
+  };
+
+  // When the editor is empty, save formatting changes as the base defaults
+  // so the box preview picks them up even before any text is typed.
+  const syncDefaultsIfEmpty = (next: Partial<TextSettings>) => {
+    if (!editor?.getText().trim()) {
+      patchText({
+        ...next,
+        html: editor?.getHTML() ?? "",
+        content: editor?.getText() ?? ""
+      });
+    }
+  };
+
+  const applyFontSize = (fontSize: number) => {
+    if (!editor) return;
+    editor.chain().setFontSize(`${fontSize}pt`).run();
+    syncDefaultsIfEmpty({ fontSize });
+  };
+
+  const hasContent = mode === "text" ? Boolean(text?.content.trim()) : Boolean(artwork);
 
   const handleFile = (file?: File) => {
     if (!file) return false;
@@ -149,82 +246,6 @@ export function ArtworkControl({
   const patch = (next: Partial<ArtworkSettings>) => {
     if (artwork) onChange(face, { ...artwork, ...next });
   };
-
-  const patchText = (next: Partial<TextSettings>) => {
-    if (face === "wrap") return;
-    onTextChange?.({ ...defaultText(face), ...text, ...next });
-  };
-
-  const syncEditor = (settings?: Partial<TextSettings>) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    patchText({
-      html: editor.innerHTML,
-      content: editor.innerText.replace(/\u00a0/g, " "),
-      ...settings
-    });
-    saveSelection();
-  };
-
-  const saveSelection = () => {
-    const editor = editorRef.current;
-    const selection = window.getSelection();
-    if (!editor || !selection?.rangeCount) return;
-    const range = selection.getRangeAt(0);
-    if (editor.contains(range.commonAncestorContainer)) {
-      selectionRef.current = range.cloneRange();
-    }
-  };
-
-  const restoreSelection = () => {
-    const selection = window.getSelection();
-    if (!selection || !selectionRef.current) return;
-    selection.removeAllRanges();
-    selection.addRange(selectionRef.current);
-  };
-
-  const applyCommand = (
-    command: string,
-    value?: string,
-    settings?: Partial<TextSettings>
-  ) => {
-    editorRef.current?.focus();
-    restoreSelection();
-    document.execCommand(command, false, value);
-    syncEditor(settings);
-  };
-
-  const applyFontSize = (fontSize: number, returnToInput = true) => {
-    const input = fontSizeRef.current;
-    const editor = editorRef.current;
-    const range = selectionRef.current?.cloneRange();
-    if (!editor || !range || range.collapsed || !editor.contains(range.commonAncestorContainer)) {
-      if (returnToInput) requestAnimationFrame(() => input?.focus());
-      return;
-    }
-
-    const span = document.createElement("span");
-    span.style.fontSize = `${fontSize}pt`;
-    span.appendChild(range.extractContents());
-    range.insertNode(span);
-
-    const selection = window.getSelection();
-    const selectedRange = document.createRange();
-    selectedRange.selectNodeContents(span);
-    selection?.removeAllRanges();
-    selection?.addRange(selectedRange);
-    selectionRef.current = selectedRange.cloneRange();
-
-    syncEditor();
-    if (returnToInput) requestAnimationFrame(() => input?.focus());
-  };
-
-  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
-  };
-
-  const hasContent = mode === "text" ? Boolean(text?.content.trim()) : Boolean(artwork);
 
   return (
     <article
@@ -371,21 +392,24 @@ export function ArtworkControl({
 
       {mode === "text" && face !== "wrap" && textSettings && (
         <div className="text-editor">
-          <div className="segmented compact text-orientation">
-            <button
-              className={textSettings.orientation === "horizontal" ? "active" : ""}
-              type="button"
-              onClick={() => patchText({ orientation: "horizontal" })}
-            >
-              Horizontal
-            </button>
-            <button
-              className={textSettings.orientation === "vertical" ? "active" : ""}
-              type="button"
-              onClick={() => patchText({ orientation: "vertical" })}
-            >
-              Vertical
-            </button>
+          <div className="text-orientation-group">
+            <span>Text orientation</span>
+            <div className="segmented compact text-orientation">
+              <button
+                className={textSettings.orientation === "horizontal" ? "active" : ""}
+                type="button"
+                onClick={() => patchText({ orientation: "horizontal" })}
+              >
+                Horizontal
+              </button>
+              <button
+                className={textSettings.orientation === "vertical" ? "active" : ""}
+                type="button"
+                onClick={() => patchText({ orientation: "vertical" })}
+              >
+                Vertical
+              </button>
+            </div>
           </div>
           {textSettings.orientation === "vertical" && (
             <label className="mirror-text-option">
@@ -397,30 +421,22 @@ export function ArtworkControl({
               Read from the opposite direction
             </label>
           )}
-          <div
-            ref={editorRef}
+          <EditorContent
+            editor={editor}
             className="rich-text-input"
-            contentEditable
-            suppressContentEditableWarning
-            role="textbox"
-            aria-multiline="true"
-            aria-label={`${LABELS[face]} text`}
-            data-placeholder="Enter text for this face"
-            onInput={() => syncEditor()}
-            onKeyUp={saveSelection}
-            onMouseUp={saveSelection}
-            onFocus={saveSelection}
-            onPaste={handlePaste}
+            style={{
+              fontFamily: textSettings.fontFamily,
+              textAlign: textSettings.align
+            }}
           />
           <div className="text-format-row">
             <select
               aria-label="Font"
-              value={textSettings.fontFamily}
-              onMouseDown={saveSelection}
+              value={currentFontFamily}
               onChange={(event) => {
-                applyCommand("fontName", event.target.value, {
-                  fontFamily: event.target.value
-                });
+                const fontFamily = event.target.value;
+                editor?.chain().focus().setFontFamily(fontFamily).run();
+                syncDefaultsIfEmpty({ fontFamily });
               }}
             >
               <option value="Arial">Arial</option>
@@ -431,14 +447,17 @@ export function ArtworkControl({
             </select>
             <label className="text-size">
               <input
-                ref={fontSizeRef}
                 aria-label="Font size"
                 type="number"
                 min="6"
                 max="72"
                 step="1"
                 value={fontSizeInput}
-                onMouseDown={saveSelection}
+                onFocus={() => { fontSizeInputFocused.current = true; }}
+                onBlur={() => {
+                  fontSizeInputFocused.current = false;
+                  setFontSizeInput(String(currentFontSize));
+                }}
                 onChange={(event) => {
                   const value = event.target.value;
                   setFontSizeInput(value);
@@ -454,14 +473,12 @@ export function ArtworkControl({
                     if (Number.isFinite(parsed)) {
                       const fontSize = Math.min(72, Math.max(6, parsed));
                       setFontSizeInput(String(fontSize));
-                      applyFontSize(fontSize, false);
+                      applyFontSize(fontSize);
                     }
-                    editorRef.current?.focus();
-                    restoreSelection();
+                    editor?.commands.focus();
                   } else if (event.key === "Escape") {
                     event.preventDefault();
-                    editorRef.current?.focus();
-                    restoreSelection();
+                    editor?.commands.focus();
                   }
                 }}
               />
@@ -471,19 +488,51 @@ export function ArtworkControl({
               className="color-input"
               aria-label="Text color"
               type="color"
-              value={textSettings.color}
-              onMouseDown={saveSelection}
+              value={currentColor}
               onChange={(event) => {
-                applyCommand("foreColor", event.target.value, {
-                  color: event.target.value
-                });
+                const color = event.target.value;
+                editor?.chain().focus().setColor(color).run();
+                syncDefaultsIfEmpty({ color });
               }}
             />
           </div>
           <div className="text-toolbar" aria-label="Text formatting">
-            <button type="button" aria-label="Bold" onMouseDown={(event) => { event.preventDefault(); applyCommand("bold"); }}><strong>B</strong></button>
-            <button type="button" aria-label="Italic" onMouseDown={(event) => { event.preventDefault(); applyCommand("italic"); }}><em>I</em></button>
-            <button type="button" aria-label="Underline" onMouseDown={(event) => { event.preventDefault(); applyCommand("underline"); }}><u>U</u></button>
+            <button
+              className={isBold ? "active" : ""}
+              type="button"
+              aria-label="Bold"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                editor?.chain().focus().toggleBold().run();
+                syncDefaultsIfEmpty({ bold: !isBold });
+              }}
+            >
+              <strong>B</strong>
+            </button>
+            <button
+              className={isItalic ? "active" : ""}
+              type="button"
+              aria-label="Italic"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                editor?.chain().focus().toggleItalic().run();
+                syncDefaultsIfEmpty({ italic: !isItalic });
+              }}
+            >
+              <em>I</em>
+            </button>
+            <button
+              className={isUnderline ? "active" : ""}
+              type="button"
+              aria-label="Underline"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                editor?.chain().focus().toggleUnderline().run();
+                syncDefaultsIfEmpty({ underline: !isUnderline });
+              }}
+            >
+              <u>U</u>
+            </button>
             {(["left", "center", "right"] as const).map((align) => (
               <button
                 key={align}
@@ -498,8 +547,21 @@ export function ArtworkControl({
                 <span className={`align-icon ${align}`}>≡</span>
               </button>
             ))}
+            {(["top", "center", "bottom"] as const).map((verticalAlign) => (
+              <button
+                key={verticalAlign}
+                className={textSettings.verticalAlign === verticalAlign ? "active" : ""}
+                type="button"
+                aria-label={`Position ${verticalAlign}`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  patchText({ verticalAlign });
+                }}
+              >
+                <span className={`valign-icon ${verticalAlign}`}>≡</span>
+              </button>
+            ))}
           </div>
-          <p className="selection-hint">Select text before applying font, size, color, or style.</p>
         </div>
       )}
     </article>

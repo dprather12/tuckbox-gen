@@ -8,6 +8,7 @@ export type BottomClosure = "tuck" | "glued";
 export type FaceContentMode = "image" | "text";
 export type TextAlignment = "left" | "center" | "right";
 export type TextOrientation = "horizontal" | "vertical";
+export type TextVerticalAlign = "top" | "center" | "bottom";
 
 export interface BoxDimensions {
   width: number;
@@ -54,6 +55,7 @@ export interface TextSettings {
   fontSize: number;
   color: string;
   align: TextAlignment;
+  verticalAlign: TextVerticalAlign;
   orientation: TextOrientation;
   mirrorVertical: boolean;
   bold: boolean;
