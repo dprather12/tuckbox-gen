@@ -20,6 +20,7 @@ export interface Preferences {
   colorFlaps: boolean;
   showPrintLines: boolean;
   showThumbNotch: boolean;
+  fillPage: boolean;
   showMoreSettings: boolean;
   useWrapArtwork: boolean;
   faceModes: FaceModeMap;
@@ -40,6 +41,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   colorFlaps: true,
   showPrintLines: true,
   showThumbNotch: true,
+  fillPage: true,
   showMoreSettings: false,
   useWrapArtwork: false,
   faceModes: {}
@@ -88,6 +90,9 @@ export function loadPreferences(): Preferences {
       showThumbNotch: typeof stored.showThumbNotch === "boolean"
         ? stored.showThumbNotch
         : DEFAULT_PREFERENCES.showThumbNotch,
+      fillPage: typeof stored.fillPage === "boolean"
+        ? stored.fillPage
+        : DEFAULT_PREFERENCES.fillPage,
       showMoreSettings: typeof stored.showMoreSettings === "boolean"
         ? stored.showMoreSettings
         : DEFAULT_PREFERENCES.showMoreSettings,

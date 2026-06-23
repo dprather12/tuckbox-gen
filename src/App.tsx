@@ -7,7 +7,7 @@ import {
   SAFE_MARGIN_MM,
   calculateDieline,
   fitsOnPaper,
-  geometryForPage,
+  geometriesForPage,
   resolvePaper,
   fromMillimeters,
   toMillimeters
@@ -44,6 +44,7 @@ export default function App() {
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
   const [showPrintLines, setShowPrintLines] = useState(initialPreferences.showPrintLines);
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
+  const [fillPage, setFillPage] = useState(initialPreferences.fillPage);
   const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
   const [faceModes, setFaceModes] = useState<FaceModeMap>(initialPreferences.faceModes);
@@ -65,6 +66,7 @@ export default function App() {
       colorFlaps,
       showPrintLines,
       showThumbNotch,
+      fillPage,
       showMoreSettings,
       useWrapArtwork,
       faceModes
@@ -80,6 +82,7 @@ export default function App() {
     colorFlaps,
     showPrintLines,
     showThumbNotch,
+    fillPage,
     showMoreSettings,
     useWrapArtwork,
     faceModes
@@ -103,19 +106,28 @@ export default function App() {
     [dimensionsMm, bottomClosure, manualGlueTab, glueTabWidth, unit]
   );
   const paper = useMemo(
-    () => resolvePaper(paperSize, orientation, rawGeometry.totalWidth, rawGeometry.totalHeight),
-    [paperSize, orientation, rawGeometry]
-  );
-  const geometry = useMemo(
     () =>
-      geometryForPage(
+      resolvePaper(
+        paperSize,
+        orientation,
+        rawGeometry.totalWidth,
+        rawGeometry.totalHeight,
+        fillPage
+      ),
+    [paperSize, orientation, rawGeometry, fillPage]
+  );
+  const geometries = useMemo(
+    () =>
+      geometriesForPage(
         dimensionsMm,
         paper,
+        fillPage,
         bottomClosure,
         manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined
       ),
-    [dimensionsMm, paper, bottomClosure, manualGlueTab, glueTabWidth, unit]
+    [dimensionsMm, paper, fillPage, bottomClosure, manualGlueTab, glueTabWidth, unit]
   );
+  const geometry = geometries[0];
   const displayedGlueTabWidth = manualGlueTab
     ? glueTabWidth
     : fromMillimeters(rawGeometry.glueTab, unit);
@@ -230,6 +242,7 @@ export default function App() {
         format: "pdf",
         paper: paper.name,
         orientation: paper.orientation,
+        copies_per_sheet: geometries.length,
         artwork_faces: decoratedFaceCount
       });
     } catch (error) {
@@ -460,13 +473,36 @@ export default function App() {
                   <option value="a4">A4</option>
                 </select>
               </label>
-              <label className="field">
-                <span>Orientation</span>
-                <select value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)}>
+              <label
+                className="field"
+                title={
+                  fillPage
+                    ? "Set to auto to maximize copies"
+                    : undefined
+                }
+              >
+                <span>
+                  Orientation
+                  {fillPage ? <small>Best copy count</small> : null}
+                </span>
+                <select
+                  value={fillPage ? "auto" : orientation}
+                  disabled={fillPage}
+                  onChange={(event) => setOrientation(event.target.value as Orientation)}
+                >
                   <option value="auto">Auto</option>
                   <option value="portrait">Portrait</option>
                   <option value="landscape">Landscape</option>
                 </select>
+              </label>
+              <label className="fill-page-option">
+                <input
+                  type="checkbox"
+                  checked={fillPage}
+                  onChange={(event) => setFillPage(event.target.checked)}
+                />
+                Fill sheet with as many copies as will fit
+                {fillPage && fits ? <small>{geometries.length} per sheet</small> : null}
               </label>
             </div>
             {dimensionsValid && (
@@ -499,6 +535,7 @@ export default function App() {
                 ref={svgRef}
                 paper={paper}
                 geometry={geometry}
+                copyGeometries={geometries.slice(1)}
                 artwork={artwork}
                 faceModes={faceModes}
                 faceText={faceText}
@@ -533,6 +570,7 @@ export default function App() {
                     format: "svg",
                     paper: paper.name,
                     orientation: paper.orientation,
+                    copies_per_sheet: geometries.length,
                     artwork_faces: decoratedFaceCount
                   });
                 }}

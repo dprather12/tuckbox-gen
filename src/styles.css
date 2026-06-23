@@ -239,6 +239,25 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   padding: 6px 9px;
   min-height: 32px;
 }
+.preview-paper-controls .fill-page-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: -5px;
+  color: #42564b;
+  font-size: .75rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.preview-paper-controls .fill-page-option input { margin: 0; }
+.preview-paper-controls .fill-page-option input { accent-color: #315a46; }
+.preview-paper-controls .fill-page-option small {
+  margin-left: 1px;
+  color: #718078;
+  font-size: .65rem;
+  font-weight: 500;
+}
 .assembled-mini-frame {
   position: relative;
   flex: 0 0 150px;
@@ -246,7 +265,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   height: 100px;
   margin-top: -27px;
   overflow: hidden;
-  border: 1px solid #c7cec9;
+  border: 2px solid #d1a75d;
   border-radius: 7px;
   background: #f7f8f4;
   box-shadow: 0 5px 14px rgba(31,49,39,.08);
@@ -480,7 +499,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .status-card { display: flex; justify-content: space-between; gap: 20px; padding: 11px 14px; margin: 20px 0 12px; border-radius: 5px; font-size: .72rem; }
 .status-card.success { background: #dce9df; color: #28523c; border-left: 3px solid #47775d; }
 .status-card.error { flex-direction: column; gap: 4px; background: #f2ded8; color: #7f352c; border-left: 3px solid #a94e40; }
-.paper-stage { display: grid; place-items: center; min-height: 610px; margin: 6px 0 28px; padding: 28px; background-color: #d9ded9; background-image: radial-gradient(#aeb8b1 0.7px, transparent 0.7px); background-size: 14px 14px; border: 1px solid #c7cec9; overflow: auto; }
+.paper-stage { display: grid; place-items: center; min-height: 610px; margin: 9px 0 28px; padding: 28px; background-color: #d9ded9; background-image: radial-gradient(#aeb8b1 0.7px, transparent 0.7px); background-size: 14px 14px; border: 1px solid #c7cec9; overflow: auto; }
 .paper-shadow { width: min(100%, 650px); filter: drop-shadow(0 12px 20px rgba(32,47,39,.17)); }
 .paper-stage.landscape .paper-shadow { width: min(100%, 720px); }
 .dieline-svg { display: block; width: 100%; height: auto; background: #fff; }

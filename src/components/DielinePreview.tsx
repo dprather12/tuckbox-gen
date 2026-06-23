@@ -21,6 +21,7 @@ import type {
 interface Props {
   paper: Paper;
   geometry: DielineGeometry;
+  copyGeometries?: DielineGeometry[];
   artwork: ArtworkMap;
   faceModes: FaceModeMap;
   faceText: TextMap;
@@ -91,6 +92,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
   ({
     paper,
     geometry,
+    copyGeometries = [],
     artwork,
     faceModes,
     faceText,
@@ -302,6 +304,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           />
         </g>
 
+        <g id={`${rawId}-dieline-copy`}>
         <g id="artwork">
           {wrapArtwork?.fit === "repeat" && (
             <rect {...bodyRect} fill={`url(#${rawId}-wrap-pattern)`} />
@@ -474,6 +477,16 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             />
           ))}
         </g>
+        </g>
+
+        {copyGeometries.map((copy, index) => (
+          <use
+            key={`${copy.pageX}-${copy.pageY}`}
+            href={`#${rawId}-dieline-copy`}
+            transform={`translate(${copy.pageX - g.pageX} ${copy.pageY - g.pageY})`}
+            aria-label={`Tuckbox copy ${index + 2}`}
+          />
+        ))}
 
         <g id="scale-check">
           <line x1={SAFE_MARGIN_MM} y1={paper.height - 8} x2={SAFE_MARGIN_MM + 50} y2={paper.height - 8} className="cut-line" />

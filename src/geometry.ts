@@ -99,13 +99,23 @@ export function resolvePaper(
   size: PaperSize,
   orientation: Orientation,
   dielineWidth: number,
-  dielineHeight: number
+  dielineHeight: number,
+  maximizeCopies = false
 ): Paper {
+  const candidates = [getPaper(size, "portrait"), getPaper(size, "landscape")];
+  if (maximizeCopies) {
+    return candidates.reduce((best, current) =>
+      countDielinesOnPaper(dielineWidth, dielineHeight, current) >
+      countDielinesOnPaper(dielineWidth, dielineHeight, best)
+        ? current
+        : best
+    );
+  }
+
   if (orientation !== "auto") {
     return getPaper(size, orientation);
   }
 
-  const candidates = [getPaper(size, "portrait"), getPaper(size, "landscape")];
   const fitting = candidates.find((paper) => fitsOnPaper(dielineWidth, dielineHeight, paper));
   if (fitting) return fitting;
 
@@ -120,6 +130,33 @@ export function resolvePaper(
   });
 }
 
+export function countDielinesOnPaper(
+  dielineWidth: number,
+  dielineHeight: number,
+  paper: Paper,
+  margin = SAFE_MARGIN_MM,
+  bleed = BLEED_MM
+): number {
+  const availableWidth = paper.width - margin * 2;
+  const availableHeight = paper.height - margin * 2;
+  const footprintWidth = dielineWidth + bleed * 2;
+  const footprintHeight = dielineHeight + bleed * 2;
+
+  if (
+    availableWidth <= 0 ||
+    availableHeight <= 0 ||
+    footprintWidth <= 0 ||
+    footprintHeight <= 0
+  ) {
+    return 0;
+  }
+
+  return (
+    Math.floor(availableWidth / footprintWidth) *
+    Math.floor(availableHeight / footprintHeight)
+  );
+}
+
 export function geometryForPage(
   dimensions: BoxDimensions,
   paper: Paper,
@@ -132,4 +169,37 @@ export function geometryForPage(
     pageX: (paper.width - geometry.totalWidth) / 2,
     pageY: (paper.height - geometry.totalHeight) / 2
   };
+}
+
+export function geometriesForPage(
+  dimensions: BoxDimensions,
+  paper: Paper,
+  fillPage: boolean,
+  bottomClosure: BottomClosure = "tuck",
+  glueTabOverride?: number
+): DielineGeometry[] {
+  if (!fillPage) {
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride)];
+  }
+
+  const geometry = calculateDieline(dimensions, bottomClosure, glueTabOverride);
+  const footprintWidth = geometry.totalWidth + BLEED_MM * 2;
+  const footprintHeight = geometry.totalHeight + BLEED_MM * 2;
+  const columns = Math.floor((paper.width - SAFE_MARGIN_MM * 2) / footprintWidth);
+  const rows = Math.floor((paper.height - SAFE_MARGIN_MM * 2) / footprintHeight);
+
+  if (columns < 1 || rows < 1) {
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride)];
+  }
+
+  const layoutWidth = columns * footprintWidth;
+  const layoutHeight = rows * footprintHeight;
+  const startX = (paper.width - layoutWidth) / 2 + BLEED_MM;
+  const startY = (paper.height - layoutHeight) / 2 + BLEED_MM;
+
+  return Array.from({ length: rows * columns }, (_, index) => ({
+    ...geometry,
+    pageX: startX + (index % columns) * footprintWidth,
+    pageY: startY + Math.floor(index / columns) * footprintHeight
+  }));
 }
