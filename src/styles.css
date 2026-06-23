@@ -137,6 +137,16 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .range-grid label { display: grid; gap: 3px; color: #627168; font-size: .65rem; }
 .range-grid label span { display: flex; justify-content: space-between; }
 .range-grid input { width: 100%; accent-color: #355b48; }
+.glue-tab-field {
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid #e0e4e1;
+}
+.manual-glue-toggle { display: flex; align-items: center; gap: 7px; color: #42564b; font-size: .75rem; }
+.glue-tab-slider { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 10px; align-items: center; }
+.glue-tab-slider > input { width: 100%; accent-color: #355b48; }
+.glue-tab-slider input:disabled { opacity: .5; cursor: not-allowed; }
+.glue-tab-number { min-width: 8.5rem; max-width: 100%; }
 .crop-controls { display: grid; gap: 10px; }
 .crop-help { margin: 0; color: #718078; font-size: .65rem; line-height: 1.35; }
 .crop-actions { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
@@ -526,6 +536,18 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   font-size: .72rem;
   font-weight: 700;
   cursor: pointer;
+}
+.more-settings-content .glue-tab-field > span {
+  color: #53645b;
+  font-size: .72rem;
+}
+.more-settings-content .glue-tab-slider .number-input {
+  display: flex;
+}
+.more-settings-content .glue-tab-slider .number-input input {
+  min-width: 4rem;
+  width: 100%;
+  accent-color: auto;
 }
 .more-settings-content input { accent-color: #315a46; }
 .wrap-art-card { grid-column: 1 / -1; }

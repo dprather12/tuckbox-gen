@@ -15,6 +15,8 @@ export interface Preferences {
   paperSize: PaperSize;
   orientation: Orientation;
   bottomClosure: BottomClosure;
+  manualGlueTab: boolean;
+  glueTabWidth: number;
   colorFlaps: boolean;
   showPrintLines: boolean;
   showThumbNotch: boolean;
@@ -33,6 +35,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   paperSize: "letter",
   orientation: "landscape",
   bottomClosure: "glued",
+  manualGlueTab: false,
+  glueTabWidth: 0.6,
   colorFlaps: true,
   showPrintLines: true,
   showThumbNotch: true,
@@ -71,6 +75,10 @@ export function loadPreferences(): Preferences {
       bottomClosure: stored.bottomClosure === "glued" || stored.bottomClosure === "tuck"
         ? stored.bottomClosure
         : DEFAULT_PREFERENCES.bottomClosure,
+      manualGlueTab: DEFAULT_PREFERENCES.manualGlueTab,
+      glueTabWidth: isPositiveNumber(stored.glueTabWidth)
+        ? stored.glueTabWidth
+        : DEFAULT_PREFERENCES.glueTabWidth,
       colorFlaps: typeof stored.colorFlaps === "boolean"
         ? stored.colorFlaps
         : DEFAULT_PREFERENCES.colorFlaps,

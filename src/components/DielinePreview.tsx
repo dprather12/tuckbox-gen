@@ -131,12 +131,13 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
       ["bottom", bottom]
     ];
     const bodyBottom = py + g.bodyY + panels.back.height;
-    const rightEdge = px + 2 * panels.back.width + 2 * panels.left.width;
-    const glueX = rightEdge;
+    const bodyLeft = panels.back.x;
+    const rightEdge = panels.right.x + panels.right.width;
+    const glueX = bodyLeft;
     const bodyRect = {
-      x: px,
+      x: bodyLeft,
       y: py + g.bodyY,
-      width: rightEdge - px,
+      width: rightEdge - bodyLeft,
       height: panels.back.height
     };
     const wrapTileHeight = bodyRect.height;
@@ -161,7 +162,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const rightTopDust = { x: panels.right.x, y: topDustY, width: panels.right.width, height: dustFlapDepth };
     const leftBottomDust = { x: panels.left.x, y: bodyBottom, width: panels.left.width, height: dustFlapDepth };
     const rightBottomDust = { x: panels.right.x, y: bodyBottom, width: panels.right.width, height: dustFlapDepth };
-    const gluePoints = `${glueX},${py + g.bodyY} ${glueX + g.glueTab},${py + g.bodyY + 4} ${glueX + g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
+    const gluePoints = `${glueX},${py + g.bodyY} ${glueX - g.glueTab},${py + g.bodyY + 4} ${glueX - g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
     const imageForFace = (face: FaceName) =>
       (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;
     const draggableFaces = faces.filter(
@@ -370,7 +371,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         </g>
 
         <g id="cut-lines" style={{ display: showPrintLines ? undefined : "none" }}>
-          <line x1={px} y1={py + g.bodyY} x2={px} y2={bodyBottom} className="cut-line" />
+          <line x1={px} y1={py + g.bodyY + 4} x2={px} y2={bodyBottom - 4} className="cut-line" />
+          <line x1={rightEdge} y1={py + g.bodyY} x2={rightEdge} y2={bodyBottom} className="cut-line" />
           <line x1={top.x} y1={top.y} x2={top.x} y2={py + g.bodyY} className="cut-line" />
           <line x1={top.x + top.width} y1={top.y} x2={top.x + top.width} y2={py + g.bodyY} className="cut-line" />
           <line x1={bottom.x} y1={bottom.y} x2={bottom.x} y2={bottom.y + bottom.height} className="cut-line" />
@@ -432,10 +434,10 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
 
         <g id="fold-lines" style={{ display: showPrintLines ? undefined : "none" }}>
           {[
+            { name: "glue-back", x: panels.back.x },
             { name: "back-left", x: panels.left.x },
             { name: "left-front", x: panels.front.x },
-            { name: "front-right", x: panels.right.x },
-            { name: "right-glue", x: rightEdge }
+            { name: "front-right", x: panels.right.x }
           ].map(({ name, x }) => (
             <line key={name} x1={x} y1={py + g.bodyY} x2={x} y2={bodyBottom} className="fold-line" />
           ))}

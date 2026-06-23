@@ -9,6 +9,7 @@ import {
   fitsOnPaper,
   geometryForPage,
   resolvePaper,
+  fromMillimeters,
   toMillimeters
 } from "./geometry";
 import { downloadPdf, downloadSvg } from "./export";
@@ -38,6 +39,8 @@ export default function App() {
   const [paperSize, setPaperSize] = useState<PaperSize>(initialPreferences.paperSize);
   const [orientation, setOrientation] = useState<Orientation>(initialPreferences.orientation);
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>(initialPreferences.bottomClosure);
+  const [manualGlueTab, setManualGlueTab] = useState(initialPreferences.manualGlueTab);
+  const [glueTabWidth, setGlueTabWidth] = useState(initialPreferences.glueTabWidth);
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
   const [showPrintLines, setShowPrintLines] = useState(initialPreferences.showPrintLines);
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
@@ -57,6 +60,8 @@ export default function App() {
       paperSize,
       orientation,
       bottomClosure,
+      manualGlueTab,
+      glueTabWidth,
       colorFlaps,
       showPrintLines,
       showThumbNotch,
@@ -70,6 +75,8 @@ export default function App() {
     paperSize,
     orientation,
     bottomClosure,
+    manualGlueTab,
+    glueTabWidth,
     colorFlaps,
     showPrintLines,
     showThumbNotch,
@@ -87,16 +94,39 @@ export default function App() {
     [dimensions, unit]
   );
   const rawGeometry = useMemo(
-    () => calculateDieline(dimensionsMm, bottomClosure),
-    [dimensionsMm, bottomClosure]
+    () =>
+      calculateDieline(
+        dimensionsMm,
+        bottomClosure,
+        manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined
+      ),
+    [dimensionsMm, bottomClosure, manualGlueTab, glueTabWidth, unit]
   );
   const paper = useMemo(
     () => resolvePaper(paperSize, orientation, rawGeometry.totalWidth, rawGeometry.totalHeight),
     [paperSize, orientation, rawGeometry]
   );
   const geometry = useMemo(
-    () => geometryForPage(dimensionsMm, paper, bottomClosure),
-    [dimensionsMm, paper, bottomClosure]
+    () =>
+      geometryForPage(
+        dimensionsMm,
+        paper,
+        bottomClosure,
+        manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined
+      ),
+    [dimensionsMm, paper, bottomClosure, manualGlueTab, glueTabWidth, unit]
+  );
+  const displayedGlueTabWidth = manualGlueTab
+    ? glueTabWidth
+    : fromMillimeters(rawGeometry.glueTab, unit);
+  const displayedGlueTabValue = Number(
+    displayedGlueTabWidth.toFixed(unit === "in" ? 2 : 1)
+  );
+  const glueTabInputWidth = `calc(${String(displayedGlueTabValue).length}ch + 5.5rem)`;
+  const glueTabSliderMax = Math.max(
+    unit === "in" ? 2 : 50,
+    dimensions.depth * 2,
+    displayedGlueTabWidth
   );
   const dimensionsValid = Object.values(dimensionsMm).every(
     (value) => Number.isFinite(value) && value > 0
@@ -340,8 +370,51 @@ export default function App() {
                       checked={showThumbNotch}
                       onChange={(event) => setShowThumbNotch(event.target.checked)}
                     />
-                    Include front thumb cutout
+                    Include front cutout notch
                   </label>
+                  <div className="field glue-tab-field">
+                    <span>
+                      Glue flap width
+                      <small>{manualGlueTab ? "Manual override" : "Automatic"}</small>
+                    </span>
+                    <label className="manual-glue-toggle">
+                      <input
+                        type="checkbox"
+                        checked={manualGlueTab}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          if (checked) {
+                            setGlueTabWidth(fromMillimeters(rawGeometry.glueTab, unit));
+                          }
+                          setManualGlueTab(checked);
+                        }}
+                      />
+                      Set manually
+                    </label>
+                    <div className="glue-tab-slider">
+                      <input
+                        type="range"
+                        min={unit === "in" ? 0.01 : 0.1}
+                        max={glueTabSliderMax}
+                        step={unit === "in" ? 0.01 : 0.1}
+                        value={displayedGlueTabWidth}
+                        disabled={!manualGlueTab}
+                        onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                        aria-label="Glue flap width"
+                      />
+                      <div className="number-input glue-tab-number" style={{ width: glueTabInputWidth }}>
+                        <input
+                          type="number"
+                          min={unit === "in" ? 0.01 : 0.1}
+                          step={unit === "in" ? 0.01 : 0.1}
+                          value={displayedGlueTabValue}
+                          disabled={!manualGlueTab}
+                          onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                        />
+                        <b>{unit}</b>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

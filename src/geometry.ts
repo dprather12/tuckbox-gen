@@ -13,6 +13,7 @@ import type {
 export const BLEED_MM = 3;
 export const SAFE_MARGIN_MM = 6.35;
 export const MAX_FLAP_MM = 19.05;
+export const MAX_GLUE_TAB_MM = 17.78;
 
 const PAPER_SIZES: Record<PaperSize, { width: number; height: number; name: string }> = {
   letter: { width: 215.9, height: 279.4, name: "US Letter" },
@@ -29,20 +30,25 @@ export function fromMillimeters(value: number, unit: Unit): number {
 
 export function calculateDieline(
   dimensions: BoxDimensions,
-  bottomClosure: BottomClosure = "tuck"
+  bottomClosure: BottomClosure = "tuck",
+  glueTabOverride?: number
 ): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
-  const glueTab = w * 0.25;
+  const automaticGlueTab = Math.min(d * 0.95, MAX_GLUE_TAB_MM);
+  const glueTab =
+    glueTabOverride !== undefined && Number.isFinite(glueTabOverride) && glueTabOverride > 0
+      ? glueTabOverride
+      : automaticGlueTab;
   const tuckLip = Math.min(MAX_FLAP_MM, Math.max(9, d * 0.9));
   const topFlapDepth = d + tuckLip;
   const bottomFlapDepth = bottomClosure === "tuck" ? d + tuckLip : d;
   const flapDepth = topFlapDepth;
   const bodyY = topFlapDepth;
 
-  const back: Rect = { x: 0, y: bodyY, width: w, height: h };
-  const left: Rect = { x: w, y: bodyY, width: d, height: h };
-  const front: Rect = { x: w + d, y: bodyY, width: w, height: h };
-  const right: Rect = { x: 2 * w + d, y: bodyY, width: d, height: h };
+  const back: Rect = { x: glueTab, y: bodyY, width: w, height: h };
+  const left: Rect = { x: glueTab + w, y: bodyY, width: d, height: h };
+  const front: Rect = { x: glueTab + w + d, y: bodyY, width: w, height: h };
+  const right: Rect = { x: glueTab + 2 * w + d, y: bodyY, width: d, height: h };
 
   return {
     totalWidth: 2 * w + 2 * d + glueTab,
@@ -52,11 +58,11 @@ export function calculateDieline(
     flapDepth,
     tuckLip,
     panels: { back, left, front, right },
-    top: { x: 0, y: tuckLip, width: w, height: d },
-    bottom: { x: 0, y: bodyY + h, width: w, height: d },
+    top: { x: glueTab, y: tuckLip, width: w, height: d },
+    bottom: { x: glueTab, y: bodyY + h, width: w, height: d },
     bottomUnderFlap:
       bottomClosure === "glued"
-        ? { x: w + d, y: bodyY + h, width: w, height: d * 0.72 }
+        ? { x: glueTab + w + d, y: bodyY + h, width: w, height: d * 0.72 }
         : undefined,
     bottomClosure
   };
@@ -117,9 +123,10 @@ export function resolvePaper(
 export function geometryForPage(
   dimensions: BoxDimensions,
   paper: Paper,
-  bottomClosure: BottomClosure = "tuck"
+  bottomClosure: BottomClosure = "tuck",
+  glueTabOverride?: number
 ): DielineGeometry {
-  const geometry = calculateDieline(dimensions, bottomClosure);
+  const geometry = calculateDieline(dimensions, bottomClosure, glueTabOverride);
   return {
     ...geometry,
     pageX: (paper.width - geometry.totalWidth) / 2,
