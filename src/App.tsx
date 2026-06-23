@@ -635,7 +635,7 @@ export default function App() {
                 disabled={!hasAnyPanelContent}
                 onClick={clearAllPanelContent}
               >
-                Clear all
+                Clear all sides
               </button>
             </div>
             <div className="more-settings">
