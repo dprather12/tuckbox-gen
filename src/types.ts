@@ -15,6 +15,18 @@ export interface BoxDimensions {
   height: number;
 }
 
+export interface DimensionCalculatorSettings {
+  cardWidth: number;
+  cardHeight: number;
+  cardThickness: number;
+  cardCount: number;
+  sleeved: boolean;
+  sleeveMicrons: number;
+  paddingWidth: number;
+  paddingDepth: number;
+  paddingHeight: number;
+}
+
 export interface PaperDimensions {
   width: number;
   height: number;

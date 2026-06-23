@@ -1,6 +1,7 @@
 import type {
   BottomClosure,
   BoxDimensions,
+  DimensionCalculatorSettings,
   FaceModeMap,
   Orientation,
   PaperDimensions,
@@ -13,6 +14,7 @@ const STORAGE_KEY = "tuckbox-studio-preferences-v1";
 export interface Preferences {
   unit: Unit;
   dimensions: BoxDimensions;
+  dimensionCalculator: DimensionCalculatorSettings;
   paperSize: PaperSize;
   customPaperDimensions: PaperDimensions;
   orientation: Orientation;
@@ -35,6 +37,17 @@ export const DEFAULT_PREFERENCES: Preferences = {
     width: 2.5,
     depth: 0.75,
     height: 3.5
+  },
+  dimensionCalculator: {
+    cardWidth: 63,
+    cardHeight: 88,
+    cardThickness: 0.305,
+    cardCount: 60,
+    sleeved: false,
+    sleeveMicrons: 100,
+    paddingWidth: 0,
+    paddingDepth: 0,
+    paddingHeight: 0
   },
   paperSize: "letter",
   customPaperDimensions: {
@@ -64,6 +77,7 @@ export function loadPreferences(): Preferences {
   try {
     const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<string, unknown>;
     const dimensions = stored.dimensions as Partial<BoxDimensions> | undefined;
+    const dimensionCalculator = stored.dimensionCalculator as Partial<DimensionCalculatorSettings> | undefined;
     const customPaperDimensions = stored.customPaperDimensions as Partial<PaperDimensions> | undefined;
     const faceModes = stored.faceModes as Record<string, unknown> | undefined;
 
@@ -73,6 +87,35 @@ export function loadPreferences(): Preferences {
         width: isPositiveNumber(dimensions?.width) ? dimensions.width : DEFAULT_PREFERENCES.dimensions.width,
         depth: isPositiveNumber(dimensions?.depth) ? dimensions.depth : DEFAULT_PREFERENCES.dimensions.depth,
         height: isPositiveNumber(dimensions?.height) ? dimensions.height : DEFAULT_PREFERENCES.dimensions.height
+      },
+      dimensionCalculator: {
+        cardWidth: isPositiveNumber(dimensionCalculator?.cardWidth)
+          ? dimensionCalculator.cardWidth
+          : DEFAULT_PREFERENCES.dimensionCalculator.cardWidth,
+        cardHeight: isPositiveNumber(dimensionCalculator?.cardHeight)
+          ? dimensionCalculator.cardHeight
+          : DEFAULT_PREFERENCES.dimensionCalculator.cardHeight,
+        cardThickness: isPositiveNumber(dimensionCalculator?.cardThickness)
+          ? dimensionCalculator.cardThickness
+          : DEFAULT_PREFERENCES.dimensionCalculator.cardThickness,
+        cardCount: isPositiveNumber(dimensionCalculator?.cardCount)
+          ? Math.round(dimensionCalculator.cardCount)
+          : DEFAULT_PREFERENCES.dimensionCalculator.cardCount,
+        sleeved: typeof dimensionCalculator?.sleeved === "boolean"
+          ? dimensionCalculator.sleeved
+          : DEFAULT_PREFERENCES.dimensionCalculator.sleeved,
+        sleeveMicrons: isPositiveNumber(dimensionCalculator?.sleeveMicrons)
+          ? dimensionCalculator.sleeveMicrons
+          : DEFAULT_PREFERENCES.dimensionCalculator.sleeveMicrons,
+        paddingWidth: typeof dimensionCalculator?.paddingWidth === "number" && Number.isFinite(dimensionCalculator.paddingWidth)
+          ? dimensionCalculator.paddingWidth
+          : DEFAULT_PREFERENCES.dimensionCalculator.paddingWidth,
+        paddingDepth: typeof dimensionCalculator?.paddingDepth === "number" && Number.isFinite(dimensionCalculator.paddingDepth)
+          ? dimensionCalculator.paddingDepth
+          : DEFAULT_PREFERENCES.dimensionCalculator.paddingDepth,
+        paddingHeight: typeof dimensionCalculator?.paddingHeight === "number" && Number.isFinite(dimensionCalculator.paddingHeight)
+          ? dimensionCalculator.paddingHeight
+          : DEFAULT_PREFERENCES.dimensionCalculator.paddingHeight
       },
       paperSize: stored.paperSize === "a4" || stored.paperSize === "letter" || stored.paperSize === "custom"
         ? stored.paperSize

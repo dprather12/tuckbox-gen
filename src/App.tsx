@@ -21,6 +21,7 @@ import type {
   ArtworkSettings,
   BottomClosure,
   BoxDimensions,
+  DimensionCalculatorSettings,
   FaceContentMode,
   FaceModeMap,
   FaceName,
@@ -39,6 +40,9 @@ export default function App() {
   const [initialPreferences] = useState(loadPreferences);
   const [unit, setUnit] = useState<Unit>(initialPreferences.unit);
   const [dimensions, setDimensions] = useState<BoxDimensions>(initialPreferences.dimensions);
+  const [dimensionCalculator, setDimensionCalculator] = useState<DimensionCalculatorSettings>(
+    initialPreferences.dimensionCalculator
+  );
   const [paperSize, setPaperSize] = useState<PaperSize>(initialPreferences.paperSize);
   const [customPaperDimensions, setCustomPaperDimensions] = useState<PaperDimensions>(
     initialPreferences.customPaperDimensions
@@ -53,6 +57,7 @@ export default function App() {
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
   const [fillPage, setFillPage] = useState(initialPreferences.fillPage);
   const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
+  const [showDimensionCalculator, setShowDimensionCalculator] = useState(false);
   const [artwork, setArtwork] = useState<ArtworkMap>({});
   const [faceModes, setFaceModes] = useState<FaceModeMap>(initialPreferences.faceModes);
   const [faceText, setFaceText] = useState<TextMap>({});
@@ -65,6 +70,7 @@ export default function App() {
     savePreferences({
       unit,
       dimensions,
+      dimensionCalculator,
       paperSize,
       customPaperDimensions,
       orientation,
@@ -83,6 +89,7 @@ export default function App() {
   }, [
     unit,
     dimensions,
+    dimensionCalculator,
     paperSize,
     customPaperDimensions,
     orientation,
@@ -107,6 +114,21 @@ export default function App() {
     }),
     [dimensions, unit]
   );
+  const calculatedDimensionsMm = useMemo(() => {
+    const sleeveThicknessMm = dimensionCalculator.sleeved
+      ? (dimensionCalculator.sleeveMicrons / 1000) * 2
+      : 0;
+    const depth =
+      dimensionCalculator.cardCount *
+        (dimensionCalculator.cardThickness + sleeveThicknessMm) +
+      dimensionCalculator.paddingDepth;
+
+    return {
+      width: dimensionCalculator.cardWidth + dimensionCalculator.paddingWidth,
+      depth,
+      height: dimensionCalculator.cardHeight + dimensionCalculator.paddingHeight
+    };
+  }, [dimensionCalculator]);
   const rawGeometry = useMemo(
     () =>
       calculateDieline(
@@ -175,6 +197,18 @@ export default function App() {
   const dimensionsValid = Object.values(dimensionsMm).every(
     (value) => Number.isFinite(value) && value > 0
   );
+  const calculatorValid =
+    dimensionCalculator.cardWidth > 0 &&
+    dimensionCalculator.cardHeight > 0 &&
+    dimensionCalculator.cardThickness > 0 &&
+    dimensionCalculator.cardCount > 0 &&
+    Number.isFinite(dimensionCalculator.paddingWidth) &&
+    dimensionCalculator.paddingWidth >= 0 &&
+    Number.isFinite(dimensionCalculator.paddingDepth) &&
+    dimensionCalculator.paddingDepth >= 0 &&
+    Number.isFinite(dimensionCalculator.paddingHeight) &&
+    dimensionCalculator.paddingHeight >= 0 &&
+    (!dimensionCalculator.sleeved || dimensionCalculator.sleeveMicrons > 0);
   const paperDimensionsValid =
     paperSize !== "custom" ||
     Object.values(customPaperDimensions).every(
@@ -187,9 +221,45 @@ export default function App() {
     fitsOnPaper(printGeometry.totalWidth, printGeometry.totalHeight, paper);
   const requiredWidth = printGeometry.totalWidth + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
   const requiredHeight = printGeometry.totalHeight + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
+  const calculatorCardLabel = dimensionCalculator.sleeved ? "Sleeved card" : "Card";
 
   const setDimension = (key: keyof BoxDimensions, value: string) => {
     setDimensions((current) => ({ ...current, [key]: Number(value) }));
+  };
+
+  const lengthInputValue = (valueMm: number) =>
+    Number(fromMillimeters(valueMm, unit).toFixed(unit === "in" ? 3 : 1));
+
+  const setCalculatorLength = (
+    key: "cardWidth" | "cardHeight" | "cardThickness" | "paddingWidth" | "paddingDepth" | "paddingHeight",
+    value: string
+  ) => {
+    setDimensionCalculator((current) => ({
+      ...current,
+      [key]: toMillimeters(Number(value), unit)
+    }));
+  };
+
+  const setCalculatorNumber = (
+    key: "cardCount" | "sleeveMicrons",
+    value: string
+  ) => {
+    setDimensionCalculator((current) => ({
+      ...current,
+      [key]: Number(value)
+    }));
+  };
+
+  const applyCalculatedDimensions = () => {
+    const precision = unit === "in" ? 3 : 1;
+    const round = (value: number) =>
+      Number(fromMillimeters(value, unit).toFixed(precision));
+
+    setDimensions({
+      width: round(calculatedDimensionsMm.width),
+      depth: round(calculatedDimensionsMm.depth),
+      height: round(calculatedDimensionsMm.height)
+    });
   };
 
   const setCustomPaperDimension = (key: keyof PaperDimensions, value: string) => {
@@ -334,27 +404,172 @@ export default function App() {
               </button>
             </div>
 
-            <div className="dimension-grid">
-              {([
-                ["width", "Width", "Front face"],
-                ["depth", "Depth", "Side face"],
-                ["height", "Height", "Vertical"]
-              ] as const).map(([key, label, hint]) => (
-                <label key={key} className="field">
-                  <span>{label}<small>{hint}</small></span>
-                  <div className="number-input">
-                    <input
-                      type="number"
-                      min="0.01"
-                      step={unit === "in" ? "0.05" : "1"}
-                      value={dimensions[key]}
-                      onChange={(event) => setDimension(key, event.target.value)}
-                    />
-                    <b>{unit}</b>
-                  </div>
-                </label>
-              ))}
+            <div className="dimension-entry-row">
+              <div className="dimension-grid">
+                {([
+                  ["width", "Width", "Front face"],
+                  ["depth", "Depth", "Side face"],
+                  ["height", "Height", "Vertical"]
+                ] as const).map(([key, label, hint]) => (
+                  <label key={key} className="field">
+                    <span>{label}<small>{hint}</small></span>
+                    <div className="number-input">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step={unit === "in" ? "0.05" : "1"}
+                        value={dimensions[key]}
+                        onChange={(event) => setDimension(key, event.target.value)}
+                      />
+                      <b>{unit}</b>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <button
+                className="dimension-calculator-toggle"
+                type="button"
+                aria-expanded={showDimensionCalculator}
+                onClick={() => setShowDimensionCalculator((current) => !current)}
+              >
+                Estimate from cards
+              </button>
             </div>
+
+            {showDimensionCalculator && (
+              <div className="calculator-panel">
+                <div className="calculator-heading">
+                  <div>
+                    <h3>Estimate from cards</h3>
+                    <p>
+                      Best approximation only. Sleeve fit, cardstock compression and printer
+                      variance can change the finished box.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="sleeved-toggle">
+                  <input
+                    type="checkbox"
+                    checked={dimensionCalculator.sleeved}
+                    onChange={(event) =>
+                      setDimensionCalculator((current) => ({
+                        ...current,
+                        sleeved: event.target.checked
+                      }))
+                    }
+                  />
+                  Sleeved cards
+                </label>
+
+                <div className="calculator-grid">
+                  <label className="field">
+                    <span>{calculatorCardLabel} width<small>Front face</small></span>
+                    <div className="number-input">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step={unit === "in" ? "0.001" : "0.1"}
+                        value={lengthInputValue(dimensionCalculator.cardWidth)}
+                        onChange={(event) => setCalculatorLength("cardWidth", event.target.value)}
+                      />
+                      <b>{unit}</b>
+                    </div>
+                  </label>
+                  <label className="field">
+                    <span>{calculatorCardLabel} height<small>Vertical</small></span>
+                    <div className="number-input">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step={unit === "in" ? "0.001" : "0.1"}
+                        value={lengthInputValue(dimensionCalculator.cardHeight)}
+                        onChange={(event) => setCalculatorLength("cardHeight", event.target.value)}
+                      />
+                      <b>{unit}</b>
+                    </div>
+                  </label>
+                  <label className="field">
+                    <span>Card thickness<small>Per card</small></span>
+                    <div className="number-input">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step={unit === "in" ? "0.001" : "0.01"}
+                        value={lengthInputValue(dimensionCalculator.cardThickness)}
+                        onChange={(event) => setCalculatorLength("cardThickness", event.target.value)}
+                      />
+                      <b>{unit}</b>
+                    </div>
+                  </label>
+                  <label className="field">
+                    <span>Cards<small>Count</small></span>
+                    <div className="number-input">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={dimensionCalculator.cardCount}
+                        onChange={(event) => setCalculatorNumber("cardCount", event.target.value)}
+                      />
+                      <b>ct</b>
+                    </div>
+                  </label>
+                </div>
+
+                {dimensionCalculator.sleeved && (
+                  <label className="field sleeve-micron-field">
+                    <span>Sleeve thickness<small>Microns, per side</small></span>
+                    <div className="number-input">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={dimensionCalculator.sleeveMicrons}
+                        onChange={(event) => setCalculatorNumber("sleeveMicrons", event.target.value)}
+                      />
+                      <b>microns</b>
+                    </div>
+                  </label>
+                )}
+
+                <div className="extra-padding-section">
+                  <h4>Extra padding</h4>
+                  <div className="padding-grid">
+                    {([
+                      ["paddingWidth", "Width"],
+                      ["paddingDepth", "Depth"],
+                      ["paddingHeight", "Height"]
+                    ] as const).map(([key, label]) => (
+                      <label className="field" key={key}>
+                        <span>{label}</span>
+                        <div className="number-input">
+                          <input
+                            type="number"
+                            min="0"
+                            step={unit === "in" ? "0.001" : "0.1"}
+                            value={lengthInputValue(dimensionCalculator[key])}
+                            onChange={(event) => setCalculatorLength(key, event.target.value)}
+                          />
+                          <b>{unit}</b>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="calculator-result">
+                  <span>
+                    Estimated box: {fromMillimeters(calculatedDimensionsMm.width, unit).toFixed(unit === "in" ? 3 : 1)} x{" "}
+                    {fromMillimeters(calculatedDimensionsMm.depth, unit).toFixed(unit === "in" ? 3 : 1)} x{" "}
+                    {fromMillimeters(calculatedDimensionsMm.height, unit).toFixed(unit === "in" ? 3 : 1)} {unit}
+                  </span>
+                  <button type="button" onClick={applyCalculatedDimensions} disabled={!calculatorValid}>
+                    Use estimate
+                  </button>
+                </div>
+              </div>
+            )}
             <label className="field closure-field">
               <span>Bottom closure</span>
               <div className="segmented compact">
