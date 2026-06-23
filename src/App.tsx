@@ -175,6 +175,14 @@ export default function App() {
     () => scaleDielineGeometry(rawGeometry, effectivePrintScale),
     [rawGeometry, effectivePrintScale]
   );
+  const assembledPreviewDimensions = useMemo(
+    () => ({
+      width: dimensionsMm.width * effectivePrintScale,
+      depth: dimensionsMm.depth * effectivePrintScale,
+      height: dimensionsMm.height * effectivePrintScale
+    }),
+    [dimensionsMm, effectivePrintScale]
+  );
   const paper = useMemo(
     () =>
       resolvePaper(
@@ -1004,7 +1012,7 @@ export default function App() {
             </div>
             {dimensionsValid && (
               <AssembledBoxPreview
-                dimensions={dimensionsMm}
+                dimensions={assembledPreviewDimensions}
                 artwork={artwork}
                 faceModes={faceModes}
                 faceText={faceText}
