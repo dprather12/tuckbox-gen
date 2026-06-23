@@ -258,6 +258,14 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   font-size: .65rem;
   font-weight: 500;
 }
+.custom-paper-dimensions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 10px;
+}
+.custom-paper-dimensions .number-input input { padding: 6px 9px; }
+.custom-paper-dimensions .number-input b { padding: 0 8px; }
 .assembled-mini-frame {
   position: relative;
   flex: 0 0 150px;
@@ -611,6 +619,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
+  .custom-paper-dimensions { grid-template-columns: minmax(0, 1fr); }
   .assembled-mini-frame {
     flex: 0 0 96px;
     width: 96px;

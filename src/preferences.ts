@@ -3,6 +3,7 @@ import type {
   BoxDimensions,
   FaceModeMap,
   Orientation,
+  PaperDimensions,
   PaperSize,
   Unit
 } from "./types";
@@ -13,6 +14,7 @@ export interface Preferences {
   unit: Unit;
   dimensions: BoxDimensions;
   paperSize: PaperSize;
+  customPaperDimensions: PaperDimensions;
   orientation: Orientation;
   bottomClosure: BottomClosure;
   manualGlueTab: boolean;
@@ -34,6 +36,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
     height: 3.5
   },
   paperSize: "letter",
+  customPaperDimensions: {
+    width: 215.9,
+    height: 279.4
+  },
   orientation: "landscape",
   bottomClosure: "glued",
   manualGlueTab: false,
@@ -56,6 +62,7 @@ export function loadPreferences(): Preferences {
   try {
     const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<string, unknown>;
     const dimensions = stored.dimensions as Partial<BoxDimensions> | undefined;
+    const customPaperDimensions = stored.customPaperDimensions as Partial<PaperDimensions> | undefined;
     const faceModes = stored.faceModes as Record<string, unknown> | undefined;
 
     return {
@@ -65,9 +72,17 @@ export function loadPreferences(): Preferences {
         depth: isPositiveNumber(dimensions?.depth) ? dimensions.depth : DEFAULT_PREFERENCES.dimensions.depth,
         height: isPositiveNumber(dimensions?.height) ? dimensions.height : DEFAULT_PREFERENCES.dimensions.height
       },
-      paperSize: stored.paperSize === "a4" || stored.paperSize === "letter"
+      paperSize: stored.paperSize === "a4" || stored.paperSize === "letter" || stored.paperSize === "custom"
         ? stored.paperSize
         : DEFAULT_PREFERENCES.paperSize,
+      customPaperDimensions: {
+        width: isPositiveNumber(customPaperDimensions?.width)
+          ? customPaperDimensions.width
+          : DEFAULT_PREFERENCES.customPaperDimensions.width,
+        height: isPositiveNumber(customPaperDimensions?.height)
+          ? customPaperDimensions.height
+          : DEFAULT_PREFERENCES.customPaperDimensions.height
+      },
       orientation:
         stored.orientation === "auto" ||
         stored.orientation === "portrait" ||

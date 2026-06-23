@@ -24,6 +24,7 @@ import type {
   FaceModeMap,
   FaceName,
   Orientation,
+  PaperDimensions,
   PaperSize,
   TextMap,
   TextSettings,
@@ -37,6 +38,9 @@ export default function App() {
   const [unit, setUnit] = useState<Unit>(initialPreferences.unit);
   const [dimensions, setDimensions] = useState<BoxDimensions>(initialPreferences.dimensions);
   const [paperSize, setPaperSize] = useState<PaperSize>(initialPreferences.paperSize);
+  const [customPaperDimensions, setCustomPaperDimensions] = useState<PaperDimensions>(
+    initialPreferences.customPaperDimensions
+  );
   const [orientation, setOrientation] = useState<Orientation>(initialPreferences.orientation);
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>(initialPreferences.bottomClosure);
   const [manualGlueTab, setManualGlueTab] = useState(initialPreferences.manualGlueTab);
@@ -59,6 +63,7 @@ export default function App() {
       unit,
       dimensions,
       paperSize,
+      customPaperDimensions,
       orientation,
       bottomClosure,
       manualGlueTab,
@@ -75,6 +80,7 @@ export default function App() {
     unit,
     dimensions,
     paperSize,
+    customPaperDimensions,
     orientation,
     bottomClosure,
     manualGlueTab,
@@ -112,9 +118,10 @@ export default function App() {
         orientation,
         rawGeometry.totalWidth,
         rawGeometry.totalHeight,
-        fillPage
+        fillPage,
+        customPaperDimensions
       ),
-    [paperSize, orientation, rawGeometry, fillPage]
+    [paperSize, orientation, rawGeometry, fillPage, customPaperDimensions]
   );
   const geometries = useMemo(
     () =>
@@ -143,12 +150,27 @@ export default function App() {
   const dimensionsValid = Object.values(dimensionsMm).every(
     (value) => Number.isFinite(value) && value > 0
   );
-  const fits = dimensionsValid && fitsOnPaper(rawGeometry.totalWidth, rawGeometry.totalHeight, paper);
+  const paperDimensionsValid =
+    paperSize !== "custom" ||
+    Object.values(customPaperDimensions).every(
+      (value) => Number.isFinite(value) && value > 0
+    );
+  const fits =
+    dimensionsValid &&
+    paperDimensionsValid &&
+    fitsOnPaper(rawGeometry.totalWidth, rawGeometry.totalHeight, paper);
   const requiredWidth = rawGeometry.totalWidth + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
   const requiredHeight = rawGeometry.totalHeight + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
 
   const setDimension = (key: keyof BoxDimensions, value: string) => {
     setDimensions((current) => ({ ...current, [key]: Number(value) }));
+  };
+
+  const setCustomPaperDimension = (key: keyof PaperDimensions, value: string) => {
+    setCustomPaperDimensions((current) => ({
+      ...current,
+      [key]: toMillimeters(Number(value), unit)
+    }));
   };
 
   const updateArtwork = (face: FaceName, next?: ArtworkSettings) => {
@@ -471,6 +493,7 @@ export default function App() {
                 <select value={paperSize} onChange={(event) => setPaperSize(event.target.value as PaperSize)}>
                   <option value="letter">US Letter</option>
                   <option value="a4">A4</option>
+                  <option value="custom">Custom</option>
                 </select>
               </label>
               <label
@@ -495,6 +518,30 @@ export default function App() {
                   <option value="landscape">Landscape</option>
                 </select>
               </label>
+              {paperSize === "custom" && (
+                <div className="custom-paper-dimensions">
+                  {(["width", "height"] as const).map((key) => (
+                    <label className="field" key={key}>
+                      <span>{key === "width" ? "Width" : "Height"}</span>
+                      <div className="number-input">
+                        <input
+                          type="number"
+                          min="0.1"
+                          step={unit === "in" ? "0.01" : "0.1"}
+                          value={Number(
+                            fromMillimeters(customPaperDimensions[key], unit).toFixed(
+                              unit === "in" ? 2 : 1
+                            )
+                          )}
+                          onChange={(event) => setCustomPaperDimension(key, event.target.value)}
+                          aria-label={`Custom paper ${key}`}
+                        />
+                        <b>{unit}</b>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
               <label className="fill-page-option">
                 <input
                   type="checkbox"
@@ -519,6 +566,8 @@ export default function App() {
           </div>
           {!dimensionsValid ? (
             <div className="status-card error">Enter positive values for all three box dimensions.</div>
+          ) : !paperDimensionsValid ? (
+            <div className="status-card error">Enter positive values for both custom paper dimensions.</div>
           ) : !fits ? (
             <div className="status-card error">
               <strong>This box will not fit at 100% scale.</strong>

@@ -1,5 +1,5 @@
 export type Unit = "mm" | "in";
-export type PaperSize = "letter" | "a4";
+export type PaperSize = "letter" | "a4" | "custom";
 export type Orientation = "auto" | "portrait" | "landscape";
 export type ResolvedOrientation = Exclude<Orientation, "auto">;
 export type FaceName = "front" | "back" | "left" | "right" | "top" | "bottom";
@@ -12,6 +12,11 @@ export type TextOrientation = "horizontal" | "vertical";
 export interface BoxDimensions {
   width: number;
   depth: number;
+  height: number;
+}
+
+export interface PaperDimensions {
+  width: number;
   height: number;
 }
 

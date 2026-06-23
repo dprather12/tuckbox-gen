@@ -4,6 +4,7 @@ import type {
   DielineGeometry,
   Orientation,
   Paper,
+  PaperDimensions,
   PaperSize,
   Rect,
   ResolvedOrientation,
@@ -15,7 +16,7 @@ export const SAFE_MARGIN_MM = 6.35;
 export const MAX_FLAP_MM = 19.05;
 export const MAX_GLUE_TAB_MM = 17.78;
 
-const PAPER_SIZES: Record<PaperSize, { width: number; height: number; name: string }> = {
+const PAPER_SIZES: Record<Exclude<PaperSize, "custom">, { width: number; height: number; name: string }> = {
   letter: { width: 215.9, height: 279.4, name: "US Letter" },
   a4: { width: 210, height: 297, name: "A4" }
 };
@@ -70,13 +71,22 @@ export function calculateDieline(
 
 export function getPaper(
   size: PaperSize,
-  orientation: ResolvedOrientation
+  orientation: ResolvedOrientation,
+  customDimensions?: PaperDimensions
 ): Paper {
-  const base = PAPER_SIZES[size];
+  const base = size === "custom"
+    ? {
+        width: customDimensions?.width ?? PAPER_SIZES.letter.width,
+        height: customDimensions?.height ?? PAPER_SIZES.letter.height,
+        name: "Custom"
+      }
+    : PAPER_SIZES[size];
   const portrait = orientation === "portrait";
+  const portraitWidth = Math.min(base.width, base.height);
+  const portraitHeight = Math.max(base.width, base.height);
   return {
-    width: portrait ? base.width : base.height,
-    height: portrait ? base.height : base.width,
+    width: portrait ? portraitWidth : portraitHeight,
+    height: portrait ? portraitHeight : portraitWidth,
     name: base.name,
     orientation
   };
@@ -100,9 +110,13 @@ export function resolvePaper(
   orientation: Orientation,
   dielineWidth: number,
   dielineHeight: number,
-  maximizeCopies = false
+  maximizeCopies = false,
+  customDimensions?: PaperDimensions
 ): Paper {
-  const candidates = [getPaper(size, "portrait"), getPaper(size, "landscape")];
+  const candidates = [
+    getPaper(size, "portrait", customDimensions),
+    getPaper(size, "landscape", customDimensions)
+  ];
   if (maximizeCopies) {
     return candidates.reduce((best, current) =>
       countDielinesOnPaper(dielineWidth, dielineHeight, current) >
@@ -113,7 +127,7 @@ export function resolvePaper(
   }
 
   if (orientation !== "auto") {
-    return getPaper(size, orientation);
+    return getPaper(size, orientation, customDimensions);
   }
 
   const fitting = candidates.find((paper) => fitsOnPaper(dielineWidth, dielineHeight, paper));
