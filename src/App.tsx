@@ -977,11 +977,6 @@ export default function App() {
             <div>
               <h2>Download template</h2>
               <p className="print-instruction">
-                Print at Actual size / 100% and disable “Fit to page.” First print a sample
-                sheet and measure the 50 mm scale-check line. If it is not exactly 50 mm,
-                adjust your printer scale by 50 ÷ measured length × 100%.
-              </p>
-              <p className="print-instruction print-instruction-current">
                 Print at Actual size / 100% and disable “Fit to page.” Use Scaling
                 to fine-tune the finished box without changing your printer settings.
               </p>

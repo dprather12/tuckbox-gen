@@ -293,7 +293,6 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             .fold-line{fill:none;stroke:#637168;stroke-width:.28;stroke-dasharray:2 1.3}
             .bleed-line{fill:none;stroke:#d56351;stroke-width:.22;stroke-dasharray:1.2 1.2}
             .safe-line{fill:none;stroke:#c7cec9;stroke-width:.2;stroke-dasharray:2 1.5}
-            .scale-text{font:2.8px Arial,sans-serif;fill:#36453d}
             .artwork-drag-handle{fill:transparent;stroke:transparent;stroke-width:.8;cursor:grab;touch-action:none}
             .artwork-drag-handle:hover{stroke:#c99e56;stroke-dasharray:2 1}
             .artwork-drag-handle.dragging{stroke:#806331;stroke-dasharray:2 1;cursor:grabbing}
@@ -511,23 +510,6 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             aria-label={`Tuckbox copy ${index + 2}`}
           />
         ))}
-
-        <g id="scale-check">
-          <line x1={SAFE_MARGIN_MM} y1={paper.height - 8} x2={SAFE_MARGIN_MM + 50} y2={paper.height - 8} className="cut-line" />
-          {[0, 10, 20, 30, 40, 50].map((tick) => (
-            <line
-              key={tick}
-              x1={SAFE_MARGIN_MM + tick}
-              y1={paper.height - 9.5}
-              x2={SAFE_MARGIN_MM + tick}
-              y2={paper.height - 6.5}
-              className="cut-line"
-            />
-          ))}
-          <text x={SAFE_MARGIN_MM} y={paper.height - 3.5} className="scale-text">
-            50 mm scale check
-          </text>
-        </g>
 
         <g data-preview-only="artwork-drag-handles" aria-hidden="true">
           {useWrapArtwork && wrapArtwork?.fit === "crop" && (

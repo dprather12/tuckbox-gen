@@ -12,6 +12,7 @@ import type {
 } from "./types";
 
 export const BLEED_MM = 3;
+export const COPY_GAP_MM = 5;
 export const SAFE_MARGIN_MM = 6.35;
 export const MAX_FLAP_MM = 19.05;
 export const MAX_GLUE_TAB_MM = 17.78;
@@ -182,12 +183,12 @@ export function countDielinesOnPaper(
   dielineHeight: number,
   paper: Paper,
   margin = SAFE_MARGIN_MM,
-  bleed = BLEED_MM
+  copyGap = COPY_GAP_MM
 ): number {
   const availableWidth = paper.width - margin * 2;
   const availableHeight = paper.height - margin * 2;
-  const footprintWidth = dielineWidth + bleed * 2;
-  const footprintHeight = dielineHeight + bleed * 2;
+  const footprintWidth = dielineWidth + copyGap;
+  const footprintHeight = dielineHeight + copyGap;
 
   if (
     availableWidth <= 0 ||
@@ -199,8 +200,8 @@ export function countDielinesOnPaper(
   }
 
   return (
-    Math.floor(availableWidth / footprintWidth) *
-    Math.floor(availableHeight / footprintHeight)
+    Math.floor((availableWidth + copyGap) / footprintWidth) *
+    Math.floor((availableHeight + copyGap) / footprintHeight)
   );
 }
 
@@ -238,19 +239,23 @@ export function geometriesForPage(
     calculateDieline(dimensions, bottomClosure, glueTabOverride),
     scale
   );
-  const footprintWidth = geometry.totalWidth + BLEED_MM * 2;
-  const footprintHeight = geometry.totalHeight + BLEED_MM * 2;
-  const columns = Math.floor((paper.width - SAFE_MARGIN_MM * 2) / footprintWidth);
-  const rows = Math.floor((paper.height - SAFE_MARGIN_MM * 2) / footprintHeight);
+  const footprintWidth = geometry.totalWidth + COPY_GAP_MM;
+  const footprintHeight = geometry.totalHeight + COPY_GAP_MM;
+  const columns = Math.floor(
+    (paper.width - SAFE_MARGIN_MM * 2 + COPY_GAP_MM) / footprintWidth
+  );
+  const rows = Math.floor(
+    (paper.height - SAFE_MARGIN_MM * 2 + COPY_GAP_MM) / footprintHeight
+  );
 
   if (columns < 1 || rows < 1) {
     return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, scale)];
   }
 
-  const layoutWidth = columns * footprintWidth;
-  const layoutHeight = rows * footprintHeight;
-  const startX = (paper.width - layoutWidth) / 2 + BLEED_MM;
-  const startY = (paper.height - layoutHeight) / 2 + BLEED_MM;
+  const layoutWidth = columns * geometry.totalWidth + (columns - 1) * COPY_GAP_MM;
+  const layoutHeight = rows * geometry.totalHeight + (rows - 1) * COPY_GAP_MM;
+  const startX = (paper.width - layoutWidth) / 2;
+  const startY = (paper.height - layoutHeight) / 2;
 
   return Array.from({ length: rows * columns }, (_, index) => ({
     ...geometry,
