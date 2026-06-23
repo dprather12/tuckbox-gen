@@ -49,6 +49,24 @@ main { min-height: 100vh; }
   text-transform: uppercase;
 }
 .hero .eyebrow { color: #d8b877; }
+.feedback-link {
+  order: 3;
+  margin-left: auto;
+  padding: 6px 14px;
+  background: #172b22;
+  border: 1px solid rgba(216, 184, 119, .55);
+  border-radius: 4px;
+  color: #d8b877;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-decoration: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  transition: background .15s, color .15s;
+}
+.feedback-link:hover { background: #1f3a2d; color: #f5e8c0; }
 
 .workspace {
   display: grid;

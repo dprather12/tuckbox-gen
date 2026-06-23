@@ -1012,10 +1012,18 @@ export default function App() {
                 >
                   Download SVG
                 </button>
-              <button className="primary-button" type="button" disabled={!fits || exporting} onClick={handlePdf}>
-                {exporting ? "Building PDF…" : "Download PDF"}
-              </button>
+                <button className="primary-button" type="button" disabled={!fits || exporting} onClick={handlePdf}>
+                  {exporting ? "Building PDF…" : "Download PDF"}
+                </button>
               </div>
+              <a
+                className="feedback-link"
+                href="https://boardgamegeek.com/thread/3727288/a-web-app-for-creating-custom-tuckboxes-you-supply"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Feedback
+              </a>
             </div>
           </section>
         </section>
