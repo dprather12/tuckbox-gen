@@ -9,6 +9,7 @@ import {
   fitsOnPaper,
   geometriesForPage,
   resolvePaper,
+  scaleDielineGeometry,
   fromMillimeters,
   toMillimeters
 } from "./geometry";
@@ -32,6 +33,7 @@ import type {
 } from "./types";
 
 const faces: FaceName[] = ["front", "back", "left", "right", "top", "bottom"];
+const INTERNAL_PRINT_BASELINE = 1.05;
 
 export default function App() {
   const [initialPreferences] = useState(loadPreferences);
@@ -42,6 +44,7 @@ export default function App() {
     initialPreferences.customPaperDimensions
   );
   const [orientation, setOrientation] = useState<Orientation>(initialPreferences.orientation);
+  const [printPercentage, setPrintPercentage] = useState(initialPreferences.printPercentage);
   const [bottomClosure, setBottomClosure] = useState<BottomClosure>(initialPreferences.bottomClosure);
   const [manualGlueTab, setManualGlueTab] = useState(initialPreferences.manualGlueTab);
   const [glueTabWidth, setGlueTabWidth] = useState(initialPreferences.glueTabWidth);
@@ -65,6 +68,7 @@ export default function App() {
       paperSize,
       customPaperDimensions,
       orientation,
+      printPercentage,
       bottomClosure,
       manualGlueTab,
       glueTabWidth,
@@ -82,6 +86,7 @@ export default function App() {
     paperSize,
     customPaperDimensions,
     orientation,
+    printPercentage,
     bottomClosure,
     manualGlueTab,
     glueTabWidth,
@@ -111,17 +116,27 @@ export default function App() {
       ),
     [dimensionsMm, bottomClosure, manualGlueTab, glueTabWidth, unit]
   );
+  const printPercentageValid =
+    Number.isFinite(printPercentage) &&
+    printPercentage >= 25 &&
+    printPercentage <= 200;
+  const effectivePrintScale =
+    INTERNAL_PRINT_BASELINE * (printPercentageValid ? printPercentage : 100) / 100;
+  const printGeometry = useMemo(
+    () => scaleDielineGeometry(rawGeometry, effectivePrintScale),
+    [rawGeometry, effectivePrintScale]
+  );
   const paper = useMemo(
     () =>
       resolvePaper(
         paperSize,
         orientation,
-        rawGeometry.totalWidth,
-        rawGeometry.totalHeight,
+        printGeometry.totalWidth,
+        printGeometry.totalHeight,
         fillPage,
         customPaperDimensions
       ),
-    [paperSize, orientation, rawGeometry, fillPage, customPaperDimensions]
+    [paperSize, orientation, printGeometry, fillPage, customPaperDimensions]
   );
   const geometries = useMemo(
     () =>
@@ -130,9 +145,19 @@ export default function App() {
         paper,
         fillPage,
         bottomClosure,
-        manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined
+        manualGlueTab ? toMillimeters(glueTabWidth, unit) : undefined,
+        effectivePrintScale
       ),
-    [dimensionsMm, paper, fillPage, bottomClosure, manualGlueTab, glueTabWidth, unit]
+    [
+      dimensionsMm,
+      paper,
+      fillPage,
+      bottomClosure,
+      manualGlueTab,
+      glueTabWidth,
+      unit,
+      effectivePrintScale
+    ]
   );
   const geometry = geometries[0];
   const displayedGlueTabWidth = manualGlueTab
@@ -158,9 +183,10 @@ export default function App() {
   const fits =
     dimensionsValid &&
     paperDimensionsValid &&
-    fitsOnPaper(rawGeometry.totalWidth, rawGeometry.totalHeight, paper);
-  const requiredWidth = rawGeometry.totalWidth + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
-  const requiredHeight = rawGeometry.totalHeight + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
+    printPercentageValid &&
+    fitsOnPaper(printGeometry.totalWidth, printGeometry.totalHeight, paper);
+  const requiredWidth = printGeometry.totalWidth + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
+  const requiredHeight = printGeometry.totalHeight + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
 
   const setDimension = (key: keyof BoxDimensions, value: string) => {
     setDimensions((current) => ({ ...current, [key]: Number(value) }));
@@ -265,6 +291,7 @@ export default function App() {
         paper: paper.name,
         orientation: paper.orientation,
         copies_per_sheet: geometries.length,
+        print_percentage: printPercentage,
         artwork_faces: decoratedFaceCount
       });
     } catch (error) {
@@ -568,9 +595,11 @@ export default function App() {
             <div className="status-card error">Enter positive values for all three box dimensions.</div>
           ) : !paperDimensionsValid ? (
             <div className="status-card error">Enter positive values for both custom paper dimensions.</div>
+          ) : !printPercentageValid ? (
+            <div className="status-card error">Enter a template size between 25% and 200%.</div>
           ) : !fits ? (
             <div className="status-card error">
-              <strong>This box will not fit at 100% scale.</strong>
+              <strong>This box will not fit at the selected template size.</strong>
               <span>
                 Required sheet area: {requiredWidth.toFixed(1)} × {requiredHeight.toFixed(1)} mm.
                 Available paper: {paper.width.toFixed(1)} × {paper.height.toFixed(1)} mm.
@@ -606,29 +635,50 @@ export default function App() {
                 sheet and measure the 50 mm scale-check line. If it is not exactly 50 mm,
                 adjust your printer scale by 50 ÷ measured length × 100%.
               </p>
+              <p className="print-instruction print-instruction-current">
+                Print at Actual size / 100% and disable “Fit to page.” Use Scaling
+                to fine-tune the finished box without changing your printer settings.
+              </p>
             </div>
-            <div className="export-actions">
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={!fits}
-                onClick={() => {
-                  if (!svgRef.current) return;
-                  downloadSvg(svgRef.current, false);
-                  trackEvent("template_download", {
-                    format: "svg",
-                    paper: paper.name,
-                    orientation: paper.orientation,
-                    copies_per_sheet: geometries.length,
-                    artwork_faces: decoratedFaceCount
-                  });
-                }}
-              >
-                Download SVG
-              </button>
+            <div className="export-controls">
+              <label className="print-percentage-field">
+                <span>Scaling</span>
+                <div className="print-percentage-input">
+                  <input
+                    type="number"
+                    min="25"
+                    max="200"
+                    step="1"
+                    value={printPercentage}
+                    onChange={(event) => setPrintPercentage(Number(event.target.value))}
+                  />
+                  <b>%</b>
+                </div>
+              </label>
+              <div className="export-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={!fits}
+                  onClick={() => {
+                    if (!svgRef.current) return;
+                    downloadSvg(svgRef.current, false);
+                    trackEvent("template_download", {
+                      format: "svg",
+                      paper: paper.name,
+                      orientation: paper.orientation,
+                      copies_per_sheet: geometries.length,
+                      print_percentage: printPercentage,
+                      artwork_faces: decoratedFaceCount
+                    });
+                  }}
+                >
+                  Download SVG
+                </button>
               <button className="primary-button" type="button" disabled={!fits || exporting} onClick={handlePdf}>
                 {exporting ? "Building PDF…" : "Download PDF"}
               </button>
+              </div>
             </div>
           </section>
         </section>

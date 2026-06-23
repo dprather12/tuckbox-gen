@@ -69,6 +69,39 @@ export function calculateDieline(
   };
 }
 
+export function scaleDielineGeometry(
+  geometry: Omit<DielineGeometry, "pageX" | "pageY">,
+  scale: number
+): Omit<DielineGeometry, "pageX" | "pageY"> {
+  const scaleRect = (rect: Rect): Rect => ({
+    x: rect.x * scale,
+    y: rect.y * scale,
+    width: rect.width * scale,
+    height: rect.height * scale
+  });
+
+  return {
+    ...geometry,
+    totalWidth: geometry.totalWidth * scale,
+    totalHeight: geometry.totalHeight * scale,
+    bodyY: geometry.bodyY * scale,
+    glueTab: geometry.glueTab * scale,
+    flapDepth: geometry.flapDepth * scale,
+    tuckLip: geometry.tuckLip * scale,
+    panels: {
+      back: scaleRect(geometry.panels.back),
+      left: scaleRect(geometry.panels.left),
+      front: scaleRect(geometry.panels.front),
+      right: scaleRect(geometry.panels.right)
+    },
+    top: scaleRect(geometry.top),
+    bottom: scaleRect(geometry.bottom),
+    bottomUnderFlap: geometry.bottomUnderFlap
+      ? scaleRect(geometry.bottomUnderFlap)
+      : undefined
+  };
+}
+
 export function getPaper(
   size: PaperSize,
   orientation: ResolvedOrientation,
@@ -175,9 +208,13 @@ export function geometryForPage(
   dimensions: BoxDimensions,
   paper: Paper,
   bottomClosure: BottomClosure = "tuck",
-  glueTabOverride?: number
+  glueTabOverride?: number,
+  scale = 1
 ): DielineGeometry {
-  const geometry = calculateDieline(dimensions, bottomClosure, glueTabOverride);
+  const geometry = scaleDielineGeometry(
+    calculateDieline(dimensions, bottomClosure, glueTabOverride),
+    scale
+  );
   return {
     ...geometry,
     pageX: (paper.width - geometry.totalWidth) / 2,
@@ -190,20 +227,24 @@ export function geometriesForPage(
   paper: Paper,
   fillPage: boolean,
   bottomClosure: BottomClosure = "tuck",
-  glueTabOverride?: number
+  glueTabOverride?: number,
+  scale = 1
 ): DielineGeometry[] {
   if (!fillPage) {
-    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride)];
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, scale)];
   }
 
-  const geometry = calculateDieline(dimensions, bottomClosure, glueTabOverride);
+  const geometry = scaleDielineGeometry(
+    calculateDieline(dimensions, bottomClosure, glueTabOverride),
+    scale
+  );
   const footprintWidth = geometry.totalWidth + BLEED_MM * 2;
   const footprintHeight = geometry.totalHeight + BLEED_MM * 2;
   const columns = Math.floor((paper.width - SAFE_MARGIN_MM * 2) / footprintWidth);
   const rows = Math.floor((paper.height - SAFE_MARGIN_MM * 2) / footprintHeight);
 
   if (columns < 1 || rows < 1) {
-    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride)];
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, scale)];
   }
 
   const layoutWidth = columns * footprintWidth;

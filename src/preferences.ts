@@ -16,6 +16,7 @@ export interface Preferences {
   paperSize: PaperSize;
   customPaperDimensions: PaperDimensions;
   orientation: Orientation;
+  printPercentage: number;
   bottomClosure: BottomClosure;
   manualGlueTab: boolean;
   glueTabWidth: number;
@@ -41,6 +42,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     height: 279.4
   },
   orientation: "landscape",
+  printPercentage: 100,
   bottomClosure: "glued",
   manualGlueTab: false,
   glueTabWidth: 0.6,
@@ -89,6 +91,12 @@ export function loadPreferences(): Preferences {
         stored.orientation === "landscape"
           ? stored.orientation
           : DEFAULT_PREFERENCES.orientation,
+      printPercentage:
+        isPositiveNumber(stored.printPercentage) &&
+        stored.printPercentage >= 25 &&
+        stored.printPercentage <= 200
+          ? stored.printPercentage
+          : DEFAULT_PREFERENCES.printPercentage,
       bottomClosure: stored.bottomClosure === "glued" || stored.bottomClosure === "tuck"
         ? stored.bottomClosure
         : DEFAULT_PREFERENCES.bottomClosure,

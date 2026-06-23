@@ -516,6 +516,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .export-card p { margin: 7px 0 0; color: #adbbb3; font-size: .78rem; }
 .export-card strong { color: #f0d197; }
 .export-card .print-instruction { color: #f0d197; font-weight: 700; }
+.export-card .print-instruction:not(.print-instruction-current) { display: none; }
 .check-label { grid-column: 1 / -1; display: flex; gap: 8px; color: #bdc8c1; font-size: .74rem; }
 .check-label input { accent-color: #c99e56; }
 .white-flaps-option {
@@ -585,7 +586,50 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   margin: 0;
   accent-color: #315a46;
 }
-.export-actions { display: flex; justify-content: flex-start; gap: 9px; }
+.export-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.print-percentage-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  order: 2;
+  color: #edf1ed;
+  font-size: .68rem;
+  font-weight: 650;
+}
+.print-percentage-input {
+  display: flex;
+  width: 78px;
+  overflow: hidden;
+  border: 1px solid rgba(173, 187, 179, .45);
+  border-radius: 4px;
+  background: rgba(255,255,255,.08);
+}
+.print-percentage-input:focus-within { border-color: #d1a75d; }
+.print-percentage-input input {
+  min-width: 0;
+  width: 100%;
+  padding: 5px 6px;
+  border: 0;
+  outline: 0;
+  color: #edf1ed;
+  background: transparent;
+  font-size: .7rem;
+}
+.print-percentage-input b {
+  display: grid;
+  place-items: center;
+  padding: 0 7px;
+  color: #adbbb3;
+  background: rgba(255,255,255,.08);
+  font-size: .66rem;
+}
+.export-actions { display: flex; justify-content: flex-start; gap: 9px; order: 1; }
 .primary-button, .secondary-button { border: 0; padding: 11px 16px; font-weight: 800; font-size: .78rem; }
 .primary-button { background: #d1a75d; color: #172b22; }
 .secondary-button { background: transparent; color: #f1f4f1; border: 1px solid #718178; }
@@ -606,6 +650,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   .control-section, .preview-column { padding-left: 20px; padding-right: 20px; }
   .preview-toolbar, .status-card, .export-card { align-items: start; }
   .export-card { grid-template-columns: 1fr; }
+  .export-controls { justify-items: stretch; }
   .export-actions { grid-column: 1; width: 100%; }
   .export-actions button { flex: 1; }
   .paper-stage { padding: 12px; min-height: 360px; }
