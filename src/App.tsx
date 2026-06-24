@@ -1023,7 +1023,6 @@ export default function App() {
                   onChange={(event) => setFillPage(event.target.checked)}
                 />
                 Fill sheet with copies
-                {fillPage && fits ? <small>{geometries.length} per sheet</small> : null}
               </label>
             </div>
             {dimensionsValid && (
