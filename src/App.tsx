@@ -3,8 +3,6 @@ import { ArtworkControl } from "./components/ArtworkControl";
 import { AssembledBoxPreview } from "./components/AssembledBoxPreview";
 import { DielinePreview } from "./components/DielinePreview";
 import {
-  BLEED_MM,
-  SAFE_MARGIN_MM,
   calculateDieline,
   fitsOnPaper,
   geometriesForPage,
@@ -297,8 +295,8 @@ export default function App() {
     paperDimensionsValid &&
     printPercentageValid &&
     fitsOnPaper(printGeometry.totalWidth, printGeometry.totalHeight, paper);
-  const requiredWidth = printGeometry.totalWidth + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
-  const requiredHeight = printGeometry.totalHeight + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
+  const requiredWidth = printGeometry.totalWidth;
+  const requiredHeight = printGeometry.totalHeight;
   const calculatorCardLabel = dimensionCalculator.sleeved ? "Sleeved card" : "Card";
 
   const handleUnitChange = (newUnit: Unit) => {
@@ -1118,7 +1116,7 @@ export default function App() {
             <div className="status-card error">
               <strong>This box will not fit at the selected template size.</strong>
               <span>
-                Required sheet area: {requiredWidth.toFixed(1)} × {requiredHeight.toFixed(1)} mm.
+                Template size: {requiredWidth.toFixed(1)} × {requiredHeight.toFixed(1)} mm.
                 Available paper: {paper.width.toFixed(1)} × {paper.height.toFixed(1)} mm.
               </span>
             </div>

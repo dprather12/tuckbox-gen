@@ -16,6 +16,7 @@ export const COPY_GAP_MM = 5;
 export const SAFE_MARGIN_MM = 6.35;
 export const MAX_FLAP_MM = 19.05;
 export const MAX_GLUE_TAB_MM = 17.78;
+const FIT_EPSILON_MM = 0.01;
 
 const PAPER_SIZES: Record<Exclude<PaperSize, "custom">, { width: number; height: number; name: string }> = {
   letter: { width: 215.9, height: 279.4, name: "US Letter" },
@@ -135,12 +136,12 @@ export function fitsOnPaper(
   dielineWidth: number,
   dielineHeight: number,
   paper: Paper,
-  margin = SAFE_MARGIN_MM,
-  bleed = BLEED_MM
+  margin = 0,
+  bleed = 0
 ): boolean {
   return (
-    dielineWidth + bleed * 2 <= paper.width - margin * 2 &&
-    dielineHeight + bleed * 2 <= paper.height - margin * 2
+    dielineWidth + bleed * 2 <= paper.width - margin * 2 + FIT_EPSILON_MM &&
+    dielineHeight + bleed * 2 <= paper.height - margin * 2 + FIT_EPSILON_MM
   );
 }
 
@@ -174,11 +175,11 @@ export function resolvePaper(
     // Neither fits: return the one with least overflow
     return [portrait, landscape].reduce((best, current) => {
       const bestOverflow =
-        Math.max(0, dielineWidth - (best.width - SAFE_MARGIN_MM * 2)) +
-        Math.max(0, dielineHeight - (best.height - SAFE_MARGIN_MM * 2));
+        Math.max(0, dielineWidth - best.width) +
+        Math.max(0, dielineHeight - best.height);
       const currentOverflow =
-        Math.max(0, dielineWidth - (current.width - SAFE_MARGIN_MM * 2)) +
-        Math.max(0, dielineHeight - (current.height - SAFE_MARGIN_MM * 2));
+        Math.max(0, dielineWidth - current.width) +
+        Math.max(0, dielineHeight - current.height);
       return currentOverflow < bestOverflow ? current : best;
     });
   }
@@ -190,7 +191,7 @@ export function countDielinesOnPaper(
   dielineWidth: number,
   dielineHeight: number,
   paper: Paper,
-  margin = SAFE_MARGIN_MM,
+  margin = 0,
   copyGap = COPY_GAP_MM
 ): number {
   const availableWidth = paper.width - margin * 2;
@@ -208,8 +209,8 @@ export function countDielinesOnPaper(
   }
 
   return (
-    Math.floor((availableWidth + copyGap) / footprintWidth) *
-    Math.floor((availableHeight + copyGap) / footprintHeight)
+    Math.floor((availableWidth + copyGap + FIT_EPSILON_MM) / footprintWidth) *
+    Math.floor((availableHeight + copyGap + FIT_EPSILON_MM) / footprintHeight)
   );
 }
 
@@ -252,10 +253,10 @@ export function geometriesForPage(
   const footprintWidth = geometry.totalWidth + COPY_GAP_MM;
   const footprintHeight = geometry.totalHeight + COPY_GAP_MM;
   const columns = Math.floor(
-    (paper.width - SAFE_MARGIN_MM * 2 + COPY_GAP_MM) / footprintWidth
+    (paper.width + COPY_GAP_MM + FIT_EPSILON_MM) / footprintWidth
   );
   const rows = Math.floor(
-    (paper.height - SAFE_MARGIN_MM * 2 + COPY_GAP_MM) / footprintHeight
+    (paper.height + COPY_GAP_MM + FIT_EPSILON_MM) / footprintHeight
   );
 
   if (columns < 1 || rows < 1) {
