@@ -174,6 +174,10 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const gluePoints = `${glueX},${py + g.bodyY} ${glueX - g.glueTab},${py + g.bodyY + 4} ${glueX - g.glueTab},${bodyBottom - 4} ${glueX},${bodyBottom}`;
     const imageForFace = (face: FaceName) =>
       (faceModes[face] ?? "image") === "image" ? artwork[face] : undefined;
+    const glueFill =
+      colorFlaps || hideCutLines
+        ? wrapArtwork?.dominantColor ?? imageForFace("back")?.dominantColor ?? "#fff"
+        : "#fff";
     const opacityForFace = (face: FaceName) =>
       (masterOpacity / 100) * ((faceOpacities[face] ?? 100) / 100);
     const draggableFaces = faces.filter(
@@ -395,7 +399,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <polygon
             points={gluePoints}
             className="flap-fill"
-            style={{ fill: "#fff" }}
+            style={{ fill: glueFill }}
           />
           {showCutLines && <polyline points={gluePoints} className="cut-shape" />}
         </g>
