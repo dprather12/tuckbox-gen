@@ -68,7 +68,7 @@ export default function App() {
   const [hideFoldLines, setHideFoldLines] = useState(initialPreferences.hideFoldLines);
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
   const [fillPage, setFillPage] = useState(initialPreferences.fillPage);
-  const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
+  const [showMoreSettings, setShowMoreSettings] = useState(false);
   const [showOpacitySettings, setShowOpacitySettings] = useState(false);
   const [showLineSettings, setShowLineSettings] = useState(false);
   const [showGlueTabSettings, setShowGlueTabSettings] = useState(false);
@@ -105,7 +105,6 @@ export default function App() {
       hideFoldLines,
       showThumbNotch,
       fillPage,
-      showMoreSettings,
       useWrapArtwork,
       faceModes,
       masterOpacity,
@@ -129,7 +128,6 @@ export default function App() {
     hideFoldLines,
     showThumbNotch,
     fillPage,
-    showMoreSettings,
     useWrapArtwork,
     faceModes,
     masterOpacity,

@@ -31,7 +31,6 @@ export interface Preferences {
   hideFoldLines: boolean;
   showThumbNotch: boolean;
   fillPage: boolean;
-  showMoreSettings: boolean;
   useWrapArtwork: boolean;
   faceModes: FaceModeMap;
   masterOpacity: number;
@@ -73,7 +72,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hideFoldLines: false,
   showThumbNotch: true,
   fillPage: true,
-  showMoreSettings: false,
   useWrapArtwork: false,
   faceModes: {},
   masterOpacity: 100,
@@ -190,9 +188,7 @@ export function loadPreferences(): Preferences {
       fillPage: typeof stored.fillPage === "boolean"
         ? stored.fillPage
         : DEFAULT_PREFERENCES.fillPage,
-      showMoreSettings: typeof stored.showMoreSettings === "boolean"
-        ? stored.showMoreSettings
-        : DEFAULT_PREFERENCES.showMoreSettings,
+
       useWrapArtwork: typeof stored.useWrapArtwork === "boolean"
         ? stored.useWrapArtwork
         : DEFAULT_PREFERENCES.useWrapArtwork,
