@@ -273,6 +273,22 @@ export default function App() {
   const requiredHeight = printGeometry.totalHeight + BLEED_MM * 2 + SAFE_MARGIN_MM * 2;
   const calculatorCardLabel = dimensionCalculator.sleeved ? "Sleeved card" : "Card";
 
+  const handleUnitChange = (newUnit: Unit) => {
+    if (newUnit === unit) return;
+    const convertLength = (value: number) => {
+      const precision = newUnit === "in" ? 3 : 1;
+      return Number(fromMillimeters(toMillimeters(value, unit), newUnit).toFixed(precision));
+    };
+    setDimensions((current) => ({
+      width: convertLength(current.width),
+      depth: convertLength(current.depth),
+      height: convertLength(current.height)
+    }));
+    if (manualGlueTab) setGlueTabWidth((v) => convertLength(v));
+    if (manualTuckFlap) setTuckFlapWidth((v) => convertLength(v));
+    setUnit(newUnit);
+  };
+
   const setDimension = (key: keyof BoxDimensions, value: string) => {
     setDimensions((current) => ({ ...current, [key]: Number(value) }));
   };
@@ -416,7 +432,7 @@ export default function App() {
     ).length + (useWrapArtwork && wrapArtwork ? 1 : 0);
 
   const handlePdf = async () => {
-    if (!svgRef.current || !fits) return;
+    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
     setExporting(true);
     try {
       await downloadPdf(svgRef.current, paper, false);
@@ -460,10 +476,10 @@ export default function App() {
             </div>
 
             <div className="segmented">
-              <button className={unit === "in" ? "active" : ""} onClick={() => setUnit("in")} type="button">
+              <button className={unit === "in" ? "active" : ""} onClick={() => handleUnitChange("in")} type="button">
                 Inches
               </button>
-              <button className={unit === "mm" ? "active" : ""} onClick={() => setUnit("mm")} type="button">
+              <button className={unit === "mm" ? "active" : ""} onClick={() => handleUnitChange("mm")} type="button">
                 Millimeters
               </button>
             </div>
@@ -1085,7 +1101,7 @@ export default function App() {
                 <button
                   className="secondary-button"
                   type="button"
-                  disabled={!fits}
+                  disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
                   onClick={() => {
                     if (!svgRef.current) return;
                     downloadSvg(svgRef.current, false);
@@ -1101,7 +1117,7 @@ export default function App() {
                 >
                   Download SVG
                 </button>
-                <button className="primary-button" type="button" disabled={!fits || exporting} onClick={handlePdf}>
+                <button className="primary-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exporting} onClick={handlePdf}>
                   {exporting ? "Building PDF…" : "Download PDF"}
                 </button>
               </div>

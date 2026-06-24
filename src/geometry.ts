@@ -152,35 +152,38 @@ export function resolvePaper(
   maximizeCopies = false,
   customDimensions?: PaperDimensions
 ): Paper {
-  const candidates = [
-    getPaper(size, "portrait", customDimensions),
-    getPaper(size, "landscape", customDimensions)
-  ];
-  if (maximizeCopies) {
-    return candidates.reduce((best, current) =>
-      countDielinesOnPaper(dielineWidth, dielineHeight, current) >
-      countDielinesOnPaper(dielineWidth, dielineHeight, best)
-        ? current
-        : best
-    );
+  const portrait = getPaper(size, "portrait", customDimensions);
+  const landscape = getPaper(size, "landscape", customDimensions);
+
+  if (maximizeCopies || orientation === "auto") {
+    const portraitCount = countDielinesOnPaper(dielineWidth, dielineHeight, portrait);
+    const landscapeCount = countDielinesOnPaper(dielineWidth, dielineHeight, landscape);
+
+    if (landscapeCount > portraitCount) return landscape;
+    if (portraitCount > landscapeCount) return portrait;
+
+    // Tied copy count: respect the user's orientation preference (landscape wins if auto)
+    if (maximizeCopies) {
+      return orientation === "portrait" ? portrait : landscape;
+    }
+
+    // "auto" with equal counts: prefer whichever fits by fitsOnPaper check (portrait first)
+    const fitting = [portrait, landscape].find((p) => fitsOnPaper(dielineWidth, dielineHeight, p));
+    if (fitting) return fitting;
+
+    // Neither fits: return the one with least overflow
+    return [portrait, landscape].reduce((best, current) => {
+      const bestOverflow =
+        Math.max(0, dielineWidth - (best.width - SAFE_MARGIN_MM * 2)) +
+        Math.max(0, dielineHeight - (best.height - SAFE_MARGIN_MM * 2));
+      const currentOverflow =
+        Math.max(0, dielineWidth - (current.width - SAFE_MARGIN_MM * 2)) +
+        Math.max(0, dielineHeight - (current.height - SAFE_MARGIN_MM * 2));
+      return currentOverflow < bestOverflow ? current : best;
+    });
   }
 
-  if (orientation !== "auto") {
-    return getPaper(size, orientation, customDimensions);
-  }
-
-  const fitting = candidates.find((paper) => fitsOnPaper(dielineWidth, dielineHeight, paper));
-  if (fitting) return fitting;
-
-  return candidates.reduce((best, current) => {
-    const bestOverflow =
-      Math.max(0, dielineWidth - (best.width - SAFE_MARGIN_MM * 2)) +
-      Math.max(0, dielineHeight - (best.height - SAFE_MARGIN_MM * 2));
-    const currentOverflow =
-      Math.max(0, dielineWidth - (current.width - SAFE_MARGIN_MM * 2)) +
-      Math.max(0, dielineHeight - (current.height - SAFE_MARGIN_MM * 2));
-    return currentOverflow < bestOverflow ? current : best;
-  });
+  return getPaper(size, orientation, customDimensions);
 }
 
 export function countDielinesOnPaper(
