@@ -31,6 +31,7 @@ import type {
   PaperSize,
   TextMap,
   TextSettings,
+  SvgExportMode,
   Unit
 } from "./types";
 
@@ -73,6 +74,8 @@ export default function App() {
   const [showLineSettings, setShowLineSettings] = useState(false);
   const [showGlueTabSettings, setShowGlueTabSettings] = useState(false);
   const [showTuckFlapSettings, setShowTuckFlapSettings] = useState(false);
+  const [showSvgMenu, setShowSvgMenu] = useState(false);
+  const [svgExportMode, setSvgExportMode] = useState<SvgExportMode>(initialPreferences.svgExportMode);
   const [masterOpacity, setMasterOpacity] = useState(initialPreferences.masterOpacity);
   const [faceOpacities, setFaceOpacities] = useState<FaceOpacityMap>(
     initialPreferences.faceOpacities
@@ -85,6 +88,7 @@ export default function App() {
   const [wrapArtwork, setWrapArtwork] = useState<ArtworkSettings>();
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+  const svgMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     savePreferences({
@@ -106,6 +110,7 @@ export default function App() {
       showThumbNotch,
       fillPage,
       useWrapArtwork,
+      svgExportMode,
       faceModes,
       masterOpacity,
       faceOpacities
@@ -129,11 +134,32 @@ export default function App() {
     showThumbNotch,
     fillPage,
     useWrapArtwork,
+    svgExportMode,
     faceModes,
     masterOpacity,
     faceOpacities
   ]);
 
+  useEffect(() => {
+    if (!showSvgMenu) return;
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && svgMenuRef.current?.contains(target)) return;
+      setShowSvgMenu(false);
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowSvgMenu(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [showSvgMenu]);
   const dimensionsMm = useMemo(
     () => ({
       width: toMillimeters(dimensions.width, unit),
@@ -426,12 +452,32 @@ export default function App() {
     });
   };
 
+  const svgDownloadLabel = svgExportMode === "cut" ? "Cut SVG" : "Artwork SVG";
+
   const decoratedFaceCount =
     faces.filter((face) =>
       (faceModes[face] ?? "image") === "text"
         ? Boolean(faceText[face]?.content.trim())
         : Boolean(artwork[face])
     ).length + (useWrapArtwork && wrapArtwork ? 1 : 0);
+
+  const handleSvgDownload = (mode = svgExportMode) => {
+    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
+    downloadSvg(svgRef.current, false, mode);
+    trackEvent("template_download", {
+      format: mode === "cut" ? "svg_cut" : "svg_artwork",
+      paper: paper.name,
+      orientation: paper.orientation,
+      copies_per_sheet: geometries.length,
+      print_percentage: printPercentage,
+      artwork_faces: decoratedFaceCount
+    });
+  };
+
+  const selectSvgExportMode = (mode: SvgExportMode) => {
+    setSvgExportMode(mode);
+    setShowSvgMenu(false);
+  };
 
   const handlePdf = async () => {
     if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
@@ -1121,28 +1167,49 @@ export default function App() {
                 </div>
               </label>
               <div className="export-actions">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
-                  onClick={() => {
-                    if (!svgRef.current) return;
-                    downloadSvg(svgRef.current, false);
-                    trackEvent("template_download", {
-                      format: "svg",
-                      paper: paper.name,
-                      orientation: paper.orientation,
-                      copies_per_sheet: geometries.length,
-                      print_percentage: printPercentage,
-                      artwork_faces: decoratedFaceCount
-                    });
-                  }}
-                >
-                  Download SVG
+                <button className="primary-button export-download-button pdf-download-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exporting} onClick={handlePdf}>
+                  {exporting ? (
+                    <span className="export-download-format">Building PDF...</span>
+                  ) : (
+                    <>
+                      <span className="export-download-kicker">Download</span>
+                      <span className="export-download-format">PDF</span>
+                    </>
+                  )}
                 </button>
-                <button className="primary-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exporting} onClick={handlePdf}>
-                  {exporting ? "Building PDF…" : "Download PDF"}
-                </button>
+                <div className="svg-split-button" ref={svgMenuRef}>
+                  <button
+                    className="secondary-button export-download-button svg-download-button"
+                    type="button"
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
+                    onClick={() => handleSvgDownload()}
+                  >
+                    <span className="export-download-kicker">Download</span>
+                    <span className="export-download-format">{svgDownloadLabel}</span>
+                  </button>
+                  <button
+                    className="secondary-button svg-menu-button"
+                    type="button"
+                    aria-label="Choose SVG export type"
+                    aria-expanded={showSvgMenu}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
+                    onClick={() => setShowSvgMenu((current) => !current)}
+                  >
+                    <span className="svg-menu-caret" aria-hidden="true" />
+                  </button>
+                  {showSvgMenu && (
+                    <div className="svg-export-menu" role="menu">
+                      <button type="button" role="menuitemradio" aria-checked={svgExportMode === "artwork"} onClick={() => selectSvgExportMode("artwork")}>
+                        <span>Artwork SVG</span>
+                        <small>Full design with artwork, fills, and page background.</small>
+                      </button>
+                      <button type="button" role="menuitemradio" aria-checked={svgExportMode === "cut"} onClick={() => selectSvgExportMode("cut")}>
+                        <span>Cut Template SVG</span>
+                        <small>Cricut-friendly cut/fold lines without artwork fills or page background.</small>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <a
                 className="feedback-link"

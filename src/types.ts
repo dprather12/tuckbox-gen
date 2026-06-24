@@ -9,6 +9,7 @@ export type FaceContentMode = "image" | "text";
 export type TextAlignment = "left" | "center" | "right";
 export type TextOrientation = "horizontal" | "vertical";
 export type TextVerticalAlign = "top" | "center" | "bottom";
+export type SvgExportMode = "artwork" | "cut";
 
 export interface BoxDimensions {
   width: number;

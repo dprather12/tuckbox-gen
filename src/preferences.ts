@@ -8,6 +8,7 @@ import type {
   Orientation,
   PaperDimensions,
   PaperSize,
+  SvgExportMode,
   Unit
 } from "./types";
 
@@ -32,6 +33,7 @@ export interface Preferences {
   showThumbNotch: boolean;
   fillPage: boolean;
   useWrapArtwork: boolean;
+  svgExportMode: SvgExportMode;
   faceModes: FaceModeMap;
   masterOpacity: number;
   faceOpacities: FaceOpacityMap;
@@ -73,6 +75,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showThumbNotch: true,
   fillPage: true,
   useWrapArtwork: false,
+  svgExportMode: "artwork",
   faceModes: {},
   masterOpacity: 100,
   faceOpacities: {}
@@ -192,6 +195,9 @@ export function loadPreferences(): Preferences {
       useWrapArtwork: typeof stored.useWrapArtwork === "boolean"
         ? stored.useWrapArtwork
         : DEFAULT_PREFERENCES.useWrapArtwork,
+      svgExportMode: stored.svgExportMode === "cut" || stored.svgExportMode === "artwork"
+        ? stored.svgExportMode
+        : DEFAULT_PREFERENCES.svgExportMode,
       faceModes: Object.fromEntries(
         Object.entries(faceModes ?? {}).filter(
           ([face, mode]) =>

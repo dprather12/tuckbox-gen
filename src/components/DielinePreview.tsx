@@ -84,10 +84,25 @@ function DustFlap({
   const points = top
     ? `${x},${y + height} ${x + inset},${y} ${x + width - inset},${y} ${x + width},${y + height}`
     : `${x + width},${y} ${x + width - inset},${y + height} ${x + inset},${y + height} ${x},${y}`;
+  const cutStyle = { display: showOutline ? undefined : "none" };
+  const linePoints = top
+    ? [
+        [x, y + height, x + inset, y],
+        [x + inset, y, x + width - inset, y],
+        [x + width - inset, y, x + width, y + height]
+      ]
+    : [
+        [x + width, y, x + width - inset, y + height],
+        [x + width - inset, y + height, x + inset, y + height],
+        [x + inset, y + height, x, y]
+      ];
+
   return (
     <g>
-      <polygon points={points} className="flap-fill" style={{ fill: fill ?? "none" }} />
-      {showOutline && <polyline points={points} className="cut-shape" />}
+      <polygon points={points} className="flap-fill" data-export-layer="flap-fill" style={{ fill: fill ?? "none" }} />
+      {linePoints.map(([x1, y1, x2, y2], index) => (
+        <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} className="cut-shape" style={cutStyle} />
+      ))}
     </g>
   );
 }
@@ -307,7 +322,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           `}</style>
         </defs>
 
-        <rect width={paper.width} height={paper.height} fill="#fff" />
+        <rect width={paper.width} height={paper.height} fill="#fff" data-export-layer="page-background" />
         <g data-preview-guide="safe">
           <rect
             x={SAFE_MARGIN_MM}
@@ -319,7 +334,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         </g>
 
         <g id={`${rawId}-dieline-copy`}>
-        <g id="artwork">
+        <g id="artwork" data-export-layer="artwork">
           {useWrapArtwork && wrapArtwork?.fit === "repeat" && (
             faces
               .filter(([face]) => ["front", "back", "left", "right"].includes(face))
@@ -373,23 +388,25 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <path
             d={`${topFlapPath} Z`}
             className="flap-fill"
+            data-export-layer="flap-fill"
             style={{ fill: colorFlaps ? imageForFace("top")?.dominantColor ?? "none" : "none" }}
           />
-          {showCutLines && <path d={topFlapPath} className="cut-shape" />}
+          <path d={topFlapPath} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
           {g.bottomClosure === "tuck" && (
             <>
               <path
                 d={`${bottomFlapPath} Z`}
                 className="flap-fill"
+                data-export-layer="flap-fill"
                 style={{ fill: colorFlaps ? imageForFace("bottom")?.dominantColor ?? "none" : "none" }}
               />
-              {showCutLines && <path d={bottomFlapPath} className="cut-shape" />}
+              <path d={bottomFlapPath} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
             </>
           )}
           {bottomUnderFlap && (
             <>
-              <path d={`${bottomUnderPath} Z`} className="flap-fill" style={{ fill: "#fff" }} />
-              {showCutLines && <path d={bottomUnderPath} className="cut-shape" />}
+              <path d={`${bottomUnderPath} Z`} className="flap-fill" data-export-layer="flap-fill" style={{ fill: "#fff" }} />
+              <path d={bottomUnderPath} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
             </>
           )}
           <DustFlap {...leftTopDust} top showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
@@ -399,12 +416,15 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <polygon
             points={gluePoints}
             className="flap-fill"
+            data-export-layer="flap-fill"
             style={{ fill: glueFill }}
           />
-          {showCutLines && <polyline points={gluePoints} className="cut-shape" />}
+          <line x1={glueX} y1={py + g.bodyY} x2={glueX - g.glueTab} y2={py + g.bodyY + 4} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
+          <line x1={glueX - g.glueTab} y1={py + g.bodyY + 4} x2={glueX - g.glueTab} y2={bodyBottom - 4} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
+          <line x1={glueX - g.glueTab} y1={bodyBottom - 4} x2={glueX} y2={bodyBottom} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
         </g>
 
-        <g id="cut-lines" style={{ display: showCutLines ? undefined : "none" }}>
+        <g id="cut-lines" data-export-layer="cut-lines" style={{ display: showCutLines ? undefined : "none" }}>
           <line x1={px} y1={py + g.bodyY + 4} x2={px} y2={bodyBottom - 4} className="cut-line" />
           <line x1={rightEdge} y1={py + g.bodyY} x2={rightEdge} y2={bodyBottom} className="cut-line" />
           <line x1={top.x} y1={top.y} x2={top.x} y2={py + g.bodyY} className="cut-line" />
@@ -466,7 +486,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           )}
         </g>
 
-        <g id="fold-lines" style={{ display: showFoldLines ? undefined : "none" }}>
+        <g id="fold-lines" data-export-layer="fold-lines" style={{ display: showFoldLines ? undefined : "none" }}>
           {[
             { name: "glue-back", x: panels.back.x },
             { name: "back-left", x: panels.left.x },
