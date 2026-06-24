@@ -1022,7 +1022,7 @@ export default function App() {
                   checked={fillPage}
                   onChange={(event) => setFillPage(event.target.checked)}
                 />
-                Fill sheet with as many copies as will fit
+                Fill sheet with copies
                 {fillPage && fits ? <small>{geometries.length} per sheet</small> : null}
               </label>
             </div>
