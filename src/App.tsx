@@ -64,11 +64,13 @@ export default function App() {
   const [manualTuckFlap, setManualTuckFlap] = useState(initialPreferences.manualTuckFlap);
   const [tuckFlapWidth, setTuckFlapWidth] = useState(initialPreferences.tuckFlapWidth);
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
-  const [showPrintLines, setShowPrintLines] = useState(initialPreferences.showPrintLines);
+  const [hideCutLines, setHideCutLines] = useState(initialPreferences.hideCutLines);
+  const [hideFoldLines, setHideFoldLines] = useState(initialPreferences.hideFoldLines);
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
   const [fillPage, setFillPage] = useState(initialPreferences.fillPage);
   const [showMoreSettings, setShowMoreSettings] = useState(initialPreferences.showMoreSettings);
   const [showOpacitySettings, setShowOpacitySettings] = useState(false);
+  const [showLineSettings, setShowLineSettings] = useState(false);
   const [showGlueTabSettings, setShowGlueTabSettings] = useState(false);
   const [showTuckFlapSettings, setShowTuckFlapSettings] = useState(false);
   const [masterOpacity, setMasterOpacity] = useState(initialPreferences.masterOpacity);
@@ -99,7 +101,8 @@ export default function App() {
       manualTuckFlap,
       tuckFlapWidth,
       colorFlaps,
-      showPrintLines,
+      hideCutLines,
+      hideFoldLines,
       showThumbNotch,
       fillPage,
       showMoreSettings,
@@ -122,7 +125,8 @@ export default function App() {
     manualTuckFlap,
     tuckFlapWidth,
     colorFlaps,
-    showPrintLines,
+    hideCutLines,
+    hideFoldLines,
     showThumbNotch,
     fillPage,
     showMoreSettings,
@@ -713,22 +717,43 @@ export default function App() {
                     />
                     Leave tabs and dust flaps white
                   </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={showPrintLines}
-                      onChange={(event) => setShowPrintLines(event.target.checked)}
-                    />
-                    Show fold and cut lines
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={showThumbNotch}
-                      onChange={(event) => setShowThumbNotch(event.target.checked)}
-                    />
-                    Include front cutout notch
-                  </label>
+                  <button
+                    className="nested-settings-button"
+                    type="button"
+                    aria-expanded={showLineSettings}
+                    onClick={() => setShowLineSettings((current) => !current)}
+                  >
+                    <span>Line visibility</span>
+                    <span aria-hidden="true">{showLineSettings ? "-" : "+"}</span>
+                  </button>
+                  {showLineSettings && (
+                    <div className="nested-settings-panel">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={hideCutLines}
+                          onChange={(event) => setHideCutLines(event.target.checked)}
+                        />
+                        Hide cut lines
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={hideFoldLines}
+                          onChange={(event) => setHideFoldLines(event.target.checked)}
+                        />
+                        Hide fold lines
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={showThumbNotch}
+                          onChange={(event) => setShowThumbNotch(event.target.checked)}
+                        />
+                        Include front cutout notch
+                      </label>
+                    </div>
+                  )}
                   <button
                     className="nested-settings-button"
                     type="button"
@@ -1066,7 +1091,8 @@ export default function App() {
                 faceModes={faceModes}
                 faceText={faceText}
                 colorFlaps={colorFlaps}
-                showPrintLines={showPrintLines}
+                hideCutLines={hideCutLines}
+                hideFoldLines={hideFoldLines}
                 showThumbNotch={showThumbNotch}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}

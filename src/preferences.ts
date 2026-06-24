@@ -27,7 +27,8 @@ export interface Preferences {
   manualTuckFlap: boolean;
   tuckFlapWidth: number;
   colorFlaps: boolean;
-  showPrintLines: boolean;
+  hideCutLines: boolean;
+  hideFoldLines: boolean;
   showThumbNotch: boolean;
   fillPage: boolean;
   showMoreSettings: boolean;
@@ -68,7 +69,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   manualTuckFlap: false,
   tuckFlapWidth: 0.45,
   colorFlaps: true,
-  showPrintLines: true,
+  hideCutLines: false,
+  hideFoldLines: false,
   showThumbNotch: true,
   fillPage: true,
   showMoreSettings: false,
@@ -172,9 +174,16 @@ export function loadPreferences(): Preferences {
       colorFlaps: typeof stored.colorFlaps === "boolean"
         ? stored.colorFlaps
         : DEFAULT_PREFERENCES.colorFlaps,
-      showPrintLines: typeof stored.showPrintLines === "boolean"
-        ? stored.showPrintLines
-        : DEFAULT_PREFERENCES.showPrintLines,
+      hideCutLines: typeof stored.hideCutLines === "boolean"
+        ? stored.hideCutLines
+        : typeof stored.showPrintLines === "boolean"
+          ? !stored.showPrintLines
+          : DEFAULT_PREFERENCES.hideCutLines,
+      hideFoldLines: typeof stored.hideFoldLines === "boolean"
+        ? stored.hideFoldLines
+        : typeof stored.showPrintLines === "boolean"
+          ? !stored.showPrintLines
+          : DEFAULT_PREFERENCES.hideFoldLines,
       showThumbNotch: typeof stored.showThumbNotch === "boolean"
         ? stored.showThumbNotch
         : DEFAULT_PREFERENCES.showThumbNotch,

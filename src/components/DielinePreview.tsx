@@ -27,7 +27,8 @@ interface Props {
   faceModes: FaceModeMap;
   faceText: TextMap;
   colorFlaps: boolean;
-  showPrintLines: boolean;
+  hideCutLines: boolean;
+  hideFoldLines: boolean;
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
@@ -100,7 +101,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     faceModes,
     faceText,
     colorFlaps,
-    showPrintLines,
+    hideCutLines,
+    hideFoldLines,
     showThumbNotch,
     useWrapArtwork,
     wrapArtwork,
@@ -221,6 +223,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
     };
+    const showCutLines = !hideCutLines;
+    const showFoldLines = !hideFoldLines;
     const reliefCutLength = Math.min(4, Math.max(2, g.tuckLip * 0.22));
     const frontTopY = py + g.bodyY;
     const frontCenterX = panels.front.x + panels.front.width / 2;
@@ -367,7 +371,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             className="flap-fill"
             style={{ fill: colorFlaps ? imageForFace("top")?.dominantColor ?? "none" : "none" }}
           />
-          {showPrintLines && <path d={topFlapPath} className="cut-shape" />}
+          {showCutLines && <path d={topFlapPath} className="cut-shape" />}
           {g.bottomClosure === "tuck" && (
             <>
               <path
@@ -375,28 +379,28 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                 className="flap-fill"
                 style={{ fill: colorFlaps ? imageForFace("bottom")?.dominantColor ?? "none" : "none" }}
               />
-              {showPrintLines && <path d={bottomFlapPath} className="cut-shape" />}
+              {showCutLines && <path d={bottomFlapPath} className="cut-shape" />}
             </>
           )}
           {bottomUnderFlap && (
             <>
               <path d={`${bottomUnderPath} Z`} className="flap-fill" style={{ fill: "#fff" }} />
-              {showPrintLines && <path d={bottomUnderPath} className="cut-shape" />}
+              {showCutLines && <path d={bottomUnderPath} className="cut-shape" />}
             </>
           )}
-          <DustFlap {...leftTopDust} top showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
-          <DustFlap {...rightTopDust} top showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
-          <DustFlap {...leftBottomDust} top={false} showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
-          <DustFlap {...rightBottomDust} top={false} showOutline={showPrintLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
+          <DustFlap {...leftTopDust} top showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightTopDust} top showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
+          <DustFlap {...leftBottomDust} top={false} showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightBottomDust} top={false} showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
           <polygon
             points={gluePoints}
             className="flap-fill"
             style={{ fill: "#fff" }}
           />
-          {showPrintLines && <polyline points={gluePoints} className="cut-shape" />}
+          {showCutLines && <polyline points={gluePoints} className="cut-shape" />}
         </g>
 
-        <g id="cut-lines" style={{ display: showPrintLines ? undefined : "none" }}>
+        <g id="cut-lines" style={{ display: showCutLines ? undefined : "none" }}>
           <line x1={px} y1={py + g.bodyY + 4} x2={px} y2={bodyBottom - 4} className="cut-line" />
           <line x1={rightEdge} y1={py + g.bodyY} x2={rightEdge} y2={bodyBottom} className="cut-line" />
           <line x1={top.x} y1={top.y} x2={top.x} y2={py + g.bodyY} className="cut-line" />
@@ -458,7 +462,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           )}
         </g>
 
-        <g id="fold-lines" style={{ display: showPrintLines ? undefined : "none" }}>
+        <g id="fold-lines" style={{ display: showFoldLines ? undefined : "none" }}>
           {[
             { name: "glue-back", x: panels.back.x },
             { name: "back-left", x: panels.left.x },
