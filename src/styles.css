@@ -269,8 +269,23 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .crop-controls { display: grid; gap: 10px; }
 .crop-help { margin: 0; color: #d1a75d; font-size: .70rem; line-height: 1.35; }
 .crop-actions { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
-.crop-background { display: grid; gap: 4px; color: #627168; font-size: .65rem; }
+.crop-background { display: grid; gap: 4px; min-width: 0; color: #627168; font-size: .65rem; }
+.crop-background-label { white-space: nowrap; }
+.crop-background-row { display: inline-flex; align-items: center; gap: 5px; }
+.crop-background-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 32px;
+  color: #53645b;
+  cursor: pointer;
+  font-size: .63rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.crop-background-toggle input { accent-color: #315a46; margin: 0; }
 .crop-reset-button {
+  flex: 0 0 auto;
   min-height: 36px;
   padding: 7px 9px;
   border: 1px solid #bdc7c0;
@@ -279,6 +294,8 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   background: #fff;
   font-size: .68rem;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 .crop-reset-button:hover:not(:disabled) { border-color: #806331; background: #f8f2e7; }
 .crop-reset-button:disabled { cursor: default; opacity: .45; }

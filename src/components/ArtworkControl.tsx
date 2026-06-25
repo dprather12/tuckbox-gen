@@ -201,7 +201,7 @@ export function ArtworkControl({
         zoom: artwork?.zoom ?? 1,
         offsetX: artwork?.offsetX ?? 0,
         offsetY: artwork?.offsetY ?? 0,
-        backgroundColor: artwork?.backgroundColor ?? "#ffffff",
+        backgroundColor: artwork?.backgroundColor,
         dominantColor,
         imageWidth: image.naturalWidth || undefined,
         imageHeight: image.naturalHeight || undefined
@@ -342,16 +342,26 @@ export function ArtworkControl({
                     </label>
                   </div>
                   <div className="crop-actions">
-                    <label className="crop-background">
-                      <span>Background Color</span>
-                      <input
-                        className="color-input"
-                        aria-label="Crop background color"
-                        type="color"
-                        value={artwork.backgroundColor ?? "#ffffff"}
-                        onChange={(event) => patch({ backgroundColor: event.target.value })}
-                      />
-                    </label>
+                    <div className="crop-background">
+                      <span className="crop-background-label">Background Color</span>
+                      <div className="crop-background-row">
+                        <input
+                          className="color-input"
+                          aria-label="Crop background color"
+                          type="color"
+                          value={artwork.backgroundColor ?? "#ffffff"}
+                          onChange={(event) => patch({ backgroundColor: event.target.value })}
+                        />
+                        <label className="crop-background-toggle">
+                          <input
+                            type="checkbox"
+                            checked={!artwork.backgroundColor}
+                            onChange={(event) => patch({ backgroundColor: event.currentTarget.checked ? undefined : "#ffffff" })}
+                          />
+                          <span>No background</span>
+                        </label>
+                      </div>
+                    </div>
                     <button
                       className="crop-reset-button"
                       type="button"

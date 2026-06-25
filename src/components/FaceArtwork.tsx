@@ -204,13 +204,15 @@ export function ArtworkImage({
       transform={transform}
       opacity={opacity}
     >
-      <rect
-        x={rect.x}
-        y={rect.y}
-        width={rect.width}
-        height={rect.height}
-        fill={artwork.backgroundColor ?? "#ffffff"}
-      />
+      {artwork.backgroundColor && (
+        <rect
+          x={rect.x}
+          y={rect.y}
+          width={rect.width}
+          height={rect.height}
+          fill={artwork.backgroundColor}
+        />
+      )}
       <image
         href={artwork.src}
         x={cropRect.x}

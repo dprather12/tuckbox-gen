@@ -100,8 +100,10 @@ function drawArtworkImage(
   artwork: ArtworkSettings,
   rect: Rect
 ) {
-  context.fillStyle = artwork.backgroundColor ?? "#ffffff";
-  context.fillRect(rect.x, rect.y, rect.width, rect.height);
+  if (artwork.backgroundColor) {
+    context.fillStyle = artwork.backgroundColor;
+    context.fillRect(rect.x, rect.y, rect.width, rect.height);
+  }
 
   if (artwork.fit === "stretch") {
     context.drawImage(image, rect.x, rect.y, rect.width, rect.height);
