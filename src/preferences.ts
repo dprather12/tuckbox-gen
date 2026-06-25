@@ -30,6 +30,9 @@ export interface Preferences {
   colorFlaps: boolean;
   hideCutLines: boolean;
   hideFoldLines: boolean;
+  lineOpacity: number;
+  lineThickness: number;
+  thumbNotchSize: number;
   showThumbNotch: boolean;
   fillPage: boolean;
   useWrapArtwork: boolean;
@@ -72,6 +75,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   colorFlaps: true,
   hideCutLines: false,
   hideFoldLines: false,
+  lineOpacity: 100,
+  lineThickness: 0.35,
+  thumbNotchSize: 7,
   showThumbNotch: true,
   fillPage: true,
   useWrapArtwork: false,
@@ -88,6 +94,12 @@ const faceNames: FaceName[] = ["front", "back", "left", "right", "top", "bottom"
 
 const isOpacity = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+
+const isLineThickness = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0.05 && value <= 1;
+
+const isThumbNotchSize = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 2 && value <= 12;
 
 export function loadPreferences(): Preferences {
   if (typeof window === "undefined") return DEFAULT_PREFERENCES;
@@ -185,6 +197,15 @@ export function loadPreferences(): Preferences {
         : typeof stored.showPrintLines === "boolean"
           ? !stored.showPrintLines
           : DEFAULT_PREFERENCES.hideFoldLines,
+      lineOpacity: isOpacity(stored.lineOpacity)
+        ? stored.lineOpacity
+        : DEFAULT_PREFERENCES.lineOpacity,
+      lineThickness: isLineThickness(stored.lineThickness)
+        ? stored.lineThickness
+        : DEFAULT_PREFERENCES.lineThickness,
+      thumbNotchSize: isThumbNotchSize(stored.thumbNotchSize)
+        ? stored.thumbNotchSize
+        : DEFAULT_PREFERENCES.thumbNotchSize,
       showThumbNotch: typeof stored.showThumbNotch === "boolean"
         ? stored.showThumbNotch
         : DEFAULT_PREFERENCES.showThumbNotch,

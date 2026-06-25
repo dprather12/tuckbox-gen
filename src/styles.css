@@ -826,6 +826,59 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .opacity-number b {
   padding: 0 7px;
 }
+.line-properties-button {
+  margin-top: 2px;
+}
+.line-configuration-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: -12px;
+  padding: 10px;
+  border: 1px solid #e0e4e1;
+  border-top: 0;
+  border-radius: 0 0 5px 5px;
+  background: #f8f9f6;
+}
+.line-properties-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #53645b;
+  font-size: .72rem;
+  font-weight: 800;
+}
+.line-defaults-button {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid #cfd8d1;
+  border-radius: 4px;
+  color: #53645b;
+  background: #fff;
+  font-size: .64rem;
+  font-weight: 800;
+}
+.line-defaults-button:hover:not(:disabled) {
+  border-color: #9fb2a6;
+  background: #eef4ef;
+}
+.line-defaults-button:disabled {
+  cursor: default;
+  opacity: .45;
+}
+.more-settings-content .line-style-field {
+  display: grid;
+  gap: 6px;
+  cursor: default;
+}
+.more-settings-content .line-style-field > span {
+  color: #53645b;
+  font-size: .72rem;
+}
+.line-style-field input[type="range"] {
+  width: 100%;
+  accent-color: #355b48;
+}
 .more-settings-content input { accent-color: #315a46; }
 .wrap-art-card { grid-column: 1 / -1; }
 .wrap-art-card .segmented { grid-template-columns: repeat(3, 1fr); }

@@ -17,6 +17,7 @@ interface Props {
   faceModes: FaceModeMap;
   faceText: TextMap;
   showThumbNotch: boolean;
+  thumbNotchSize: number;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
   masterOpacity: number;
@@ -73,7 +74,8 @@ function clippedFacePath(
   face: FaceName,
   width: number,
   height: number,
-  showThumbNotch: boolean
+  showThumbNotch: boolean,
+  thumbNotchSize: number
 ) {
   context.beginPath();
   if (face !== "front" || !showThumbNotch) {
@@ -81,7 +83,7 @@ function clippedFacePath(
     return;
   }
 
-  const notchRadius = Math.min(7, Math.max(3.5, width * 0.09));
+  const notchRadius = Math.min(width / 2, Math.max(0.5, thumbNotchSize));
   const centerX = width / 2;
   context.moveTo(0, 0);
   context.lineTo(centerX - notchRadius, 0);
@@ -156,6 +158,7 @@ function FaceCanvas({
   faceResolutionScale,
   artwork,
   showThumbNotch,
+  thumbNotchSize,
   opacity
 }: {
   face: FaceName;
@@ -165,6 +168,7 @@ function FaceCanvas({
   faceResolutionScale: number;
   artwork?: ArtworkSettings;
   showThumbNotch: boolean;
+  thumbNotchSize: number;
   opacity: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -194,7 +198,7 @@ function FaceCanvas({
       context.imageSmoothingQuality = "high";
       context.clearRect(0, 0, bitmapWidth, bitmapHeight);
       context.scale(bitmapWidth / width, bitmapHeight / height);
-      clippedFacePath(context, face, width, height, showThumbNotch);
+      clippedFacePath(context, face, width, height, showThumbNotch, thumbNotchSize);
       context.clip();
       drawArtworkImage(context, image, artwork, { x: 0, y: 0, width, height });
     };
@@ -203,7 +207,7 @@ function FaceCanvas({
     return () => {
       cancelled = true;
     };
-  }, [artwork, face, faceResolutionScale, height, pixelScale, showThumbNotch, width]);
+  }, [artwork, face, faceResolutionScale, height, pixelScale, showThumbNotch, thumbNotchSize, width]);
 
   if (!artwork) return null;
 
@@ -226,6 +230,7 @@ function FaceSvg({
   faceModes,
   faceText,
   showThumbNotch,
+  thumbNotchSize,
   useWrapArtwork,
   wrapArtwork,
   wrapRect,
@@ -242,6 +247,7 @@ function FaceSvg({
   faceModes: FaceModeMap;
   faceText: TextMap;
   showThumbNotch: boolean;
+  thumbNotchSize: number;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
   wrapRect: Rect;
@@ -256,7 +262,7 @@ function FaceSvg({
   const patternId = `${rawId}-${face}-wrap-pattern`;
   const isBody = face === "front" || face === "back" || face === "left" || face === "right";
   const usesWrap = isBody && useWrapArtwork && Boolean(wrapArtwork);
-  const notchRadius = Math.min(7, Math.max(3.5, width * 0.09));
+  const notchRadius = Math.min(width / 2, Math.max(0.5, thumbNotchSize));
   const centerX = width / 2;
   const facePath = face === "front" && showThumbNotch
     ? `M 0 0 H ${centerX - notchRadius} A ${notchRadius} ${notchRadius} 0 0 0 ${centerX + notchRadius} 0 H ${width} V ${height} H 0 Z`
@@ -349,6 +355,7 @@ export function AssembledBoxPreview({
   faceModes,
   faceText,
   showThumbNotch,
+  thumbNotchSize,
   useWrapArtwork,
   wrapArtwork,
   masterOpacity,
@@ -554,6 +561,7 @@ export function AssembledBoxPreview({
                   faceResolutionScale={faceResolutionScale}
                   artwork={rasterArtwork}
                   showThumbNotch={showThumbNotch}
+                  thumbNotchSize={thumbNotchSize}
                   opacity={opacityForFace(face)}
                 />
                 <FaceSvg
@@ -564,6 +572,7 @@ export function AssembledBoxPreview({
                   faceModes={faceModes}
                   faceText={faceText}
                   showThumbNotch={showThumbNotch}
+                  thumbNotchSize={thumbNotchSize}
                   useWrapArtwork={useWrapArtwork}
                   wrapArtwork={wrapArtwork}
                   wrapRect={wrapRect}

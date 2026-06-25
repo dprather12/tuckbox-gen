@@ -29,6 +29,9 @@ interface Props {
   colorFlaps: boolean;
   hideCutLines: boolean;
   hideFoldLines: boolean;
+  lineOpacity: number;
+  lineThickness: number;
+  thumbNotchSize: number;
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
@@ -129,6 +132,9 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     colorFlaps,
     hideCutLines,
     hideFoldLines,
+    lineOpacity,
+    lineThickness,
+    thumbNotchSize,
     showThumbNotch,
     useWrapArtwork,
     wrapArtwork,
@@ -271,15 +277,27 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     };
     const showCutLines = !hideCutLines;
     const showFoldLines = !hideFoldLines;
+    const cutLineWidth = Number(lineThickness.toFixed(3));
+    const foldLineWidth = Number((lineThickness * 0.8).toFixed(3));
+    const lineStrokeOpacity = Number((lineOpacity / 100).toFixed(2));
     const reliefCutLength = Math.min(4, Math.max(2, g.tuckLip * 0.22));
     const frontTopY = py + g.bodyY;
     const frontCenterX = panels.front.x + panels.front.width / 2;
-    const thumbNotchRadius = Math.min(7, Math.max(3.5, panels.front.width * 0.09));
+    const thumbNotchRadius = Math.min(panels.front.width / 2, Math.max(0.5, thumbNotchSize));
     const frontThumbNotchPath =
       `M ${panels.front.x} ${frontTopY} ` +
       `H ${frontCenterX - thumbNotchRadius} ` +
       `A ${thumbNotchRadius} ${thumbNotchRadius} 0 0 0 ${frontCenterX + thumbNotchRadius} ${frontTopY} ` +
       `H ${panels.front.x + panels.front.width}`;
+    const frontFaceClipPath =
+      showThumbNotch
+        ? `M ${panels.front.x} ${frontTopY} ` +
+          `H ${frontCenterX - thumbNotchRadius} ` +
+          `A ${thumbNotchRadius} ${thumbNotchRadius} 0 0 0 ${frontCenterX + thumbNotchRadius} ${frontTopY} ` +
+          `H ${panels.front.x + panels.front.width} ` +
+          `V ${panels.front.y + panels.front.height} ` +
+          `H ${panels.front.x} Z`
+        : undefined;
     // Replace the SVG node when its geometry changes. Chromium can otherwise
     // retain stale pixels for moved strokes when raster images and the
     // preview's drop-shadow compositing layer are both present.
@@ -309,7 +327,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         <defs>
           {faces.map(([face, rect]) => (
             <clipPath id={`${rawId}-${face}`} key={face}>
-              <rect {...rect} />
+              {face === "front" && frontFaceClipPath ? <path d={frontFaceClipPath} /> : <rect {...rect} />}
             </clipPath>
           ))}
           <clipPath id={`${rawId}-body-wrap`}><rect {...bodyRect} /></clipPath>
@@ -338,9 +356,9 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <clipPath id={`${rawId}-right-bottom-dust`}><polygon points={dustPoints(rightBottomDust, false)} /></clipPath>
           <clipPath id={`${rawId}-glue-tab`}><polygon points={gluePoints} /></clipPath>
           <style>{`
-            .cut-shape,.cut-line{fill:none;stroke:#17231d;stroke-width:.35}
+            .cut-shape,.cut-line{fill:none;stroke:#17231d;stroke-width:${cutLineWidth};stroke-opacity:${lineStrokeOpacity}}
             .flap-fill{stroke:none}
-            .fold-line{fill:none;stroke:#637168;stroke-width:.28;stroke-dasharray:2 1.3}
+            .fold-line{fill:none;stroke:#637168;stroke-width:${foldLineWidth};stroke-opacity:${lineStrokeOpacity};stroke-dasharray:2 1.3}
             .bleed-line{fill:none;stroke:#d56351;stroke-width:.22;stroke-dasharray:1.2 1.2}
             .safe-line{fill:none;stroke:#c7cec9;stroke-width:.2;stroke-dasharray:2 1.5}
             .artwork-drag-handle{fill:transparent;stroke:transparent;stroke-width:.8;cursor:grab;touch-action:none}
@@ -370,6 +388,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                   key={`wrap-repeat-${face}`}
                   {...rect}
                   fill={`url(#${rawId}-wrap-pattern)`}
+                  clipPath={`url(#${rawId}-${face})`}
                   opacity={opacityForFace(face)}
                 />
               ))

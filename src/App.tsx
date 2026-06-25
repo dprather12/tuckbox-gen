@@ -14,7 +14,7 @@ import {
 } from "./geometry";
 import { downloadPdf, downloadSvg } from "./export";
 import { trackEvent } from "./analytics";
-import { loadPreferences, savePreferences } from "./preferences";
+import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from "./preferences";
 import type {
   ArtworkMap,
   ArtworkSettings,
@@ -36,6 +36,9 @@ import type {
 
 const faces: FaceName[] = ["front", "back", "left", "right", "top", "bottom"];
 const INTERNAL_PRINT_BASELINE = 1.05;
+const DEFAULT_LINE_OPACITY = DEFAULT_PREFERENCES.lineOpacity;
+const DEFAULT_LINE_THICKNESS = DEFAULT_PREFERENCES.lineThickness;
+const DEFAULT_THUMB_NOTCH_SIZE = DEFAULT_PREFERENCES.thumbNotchSize;
 const faceLabels: Record<FaceName, string> = {
   front: "Front",
   back: "Back",
@@ -66,11 +69,15 @@ export default function App() {
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
   const [hideCutLines, setHideCutLines] = useState(initialPreferences.hideCutLines);
   const [hideFoldLines, setHideFoldLines] = useState(initialPreferences.hideFoldLines);
+  const [lineOpacity, setLineOpacity] = useState(initialPreferences.lineOpacity);
+  const [lineThickness, setLineThickness] = useState(initialPreferences.lineThickness);
+  const [thumbNotchSize, setThumbNotchSize] = useState(initialPreferences.thumbNotchSize);
   const [showThumbNotch, setShowThumbNotch] = useState(initialPreferences.showThumbNotch);
   const [fillPage, setFillPage] = useState(initialPreferences.fillPage);
   const [showMoreSettings, setShowMoreSettings] = useState(false);
   const [showOpacitySettings, setShowOpacitySettings] = useState(false);
   const [showLineSettings, setShowLineSettings] = useState(false);
+  const [showLineConfiguration, setShowLineConfiguration] = useState(false);
   const [showGlueTabSettings, setShowGlueTabSettings] = useState(false);
   const [showTuckFlapSettings, setShowTuckFlapSettings] = useState(false);
   const [showSvgMenu, setShowSvgMenu] = useState(false);
@@ -106,6 +113,9 @@ export default function App() {
       colorFlaps,
       hideCutLines,
       hideFoldLines,
+      lineOpacity,
+      lineThickness,
+      thumbNotchSize,
       showThumbNotch,
       fillPage,
       useWrapArtwork,
@@ -130,6 +140,9 @@ export default function App() {
     colorFlaps,
     hideCutLines,
     hideFoldLines,
+    lineOpacity,
+    lineThickness,
+    thumbNotchSize,
     showThumbNotch,
     fillPage,
     useWrapArtwork,
@@ -377,6 +390,32 @@ export default function App() {
       [face]: clampOpacity(Number(value))
     }));
   };
+
+  const updateLineOpacity = (value: string) => {
+    const numeric = Number(value);
+    setLineOpacity(Math.min(100, Math.max(0, Number.isFinite(numeric) ? numeric : DEFAULT_LINE_OPACITY)));
+  };
+
+  const updateLineThickness = (value: string) => {
+    const numeric = Number(value);
+    setLineThickness(Math.min(1, Math.max(0.05, Number.isFinite(numeric) ? numeric : DEFAULT_LINE_THICKNESS)));
+  };
+
+  const updateThumbNotchSize = (value: string) => {
+    const numeric = Number(value);
+    setThumbNotchSize(Math.min(12, Math.max(2, Number.isFinite(numeric) ? numeric : DEFAULT_THUMB_NOTCH_SIZE)));
+  };
+
+  const resetLineDefaults = () => {
+    setLineOpacity(DEFAULT_LINE_OPACITY);
+    setLineThickness(DEFAULT_LINE_THICKNESS);
+    setThumbNotchSize(DEFAULT_THUMB_NOTCH_SIZE);
+  };
+
+  const lineSettingsAtDefaults =
+    lineOpacity === DEFAULT_LINE_OPACITY &&
+    lineThickness === DEFAULT_LINE_THICKNESS &&
+    thumbNotchSize === DEFAULT_THUMB_NOTCH_SIZE;
 
   const updateArtwork = (face: FaceName, next?: ArtworkSettings) => {
     const previous = artwork[face];
@@ -773,6 +812,72 @@ export default function App() {
                   </button>
                   {showLineSettings && (
                     <div className="nested-settings-panel">
+                      <button
+                        className="nested-settings-button line-properties-button"
+                        type="button"
+                        aria-expanded={showLineConfiguration}
+                        onClick={() => setShowLineConfiguration((current) => !current)}
+                      >
+                        <span>Line properties</span>
+                        <span aria-hidden="true">{showLineConfiguration ? "-" : "+"}</span>
+                      </button>
+                      {showLineConfiguration && (
+                        <div className="line-configuration-panel">
+                          <div className="line-properties-heading">
+                            <span>Line properties</span>
+                            <button
+                              className="line-defaults-button"
+                              type="button"
+                              disabled={lineSettingsAtDefaults}
+                              onClick={resetLineDefaults}
+                            >
+                              Reset
+                            </button>
+                          </div>
+                          <label className="field line-style-field">
+                            <span>
+                              Line opacity
+                              <small>{lineOpacity}%</small>
+                            </span>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={lineOpacity}
+                              onChange={(event) => updateLineOpacity(event.target.value)}
+                            />
+                          </label>
+                          <label className="field line-style-field">
+                            <span>
+                              Line thickness
+                              <small>{lineThickness.toFixed(2)} mm</small>
+                            </span>
+                            <input
+                              type="range"
+                              min="0.05"
+                              max="1"
+                              step="0.05"
+                              value={lineThickness}
+                              onChange={(event) => updateLineThickness(event.target.value)}
+                            />
+                          </label>
+                          <label className="field line-style-field">
+                            <span>
+                              Thumb cutout size
+                              <small>{thumbNotchSize.toFixed(1)} mm</small>
+                            </span>
+                            <input
+                              type="range"
+                              min="2"
+                              max="12"
+                              step="0.5"
+                              value={thumbNotchSize}
+                              onChange={(event) => updateThumbNotchSize(event.target.value)}
+                            />
+                          </label>
+                        </div>
+                      )}
                       <label>
                         <input
                           type="checkbox"
@@ -792,10 +897,10 @@ export default function App() {
                       <label>
                         <input
                           type="checkbox"
-                          checked={showThumbNotch}
-                          onChange={(event) => setShowThumbNotch(event.target.checked)}
+                          checked={!showThumbNotch}
+                          onChange={(event) => setShowThumbNotch(!event.target.checked)}
                         />
-                        Include front cutout notch
+                        Hide cutout notch
                       </label>
                     </div>
                   )}
@@ -1102,6 +1207,7 @@ export default function App() {
                 faceModes={faceModes}
                 faceText={faceText}
                 showThumbNotch={showThumbNotch}
+                thumbNotchSize={thumbNotchSize}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
                 masterOpacity={masterOpacity}
@@ -1138,7 +1244,10 @@ export default function App() {
                 colorFlaps={colorFlaps}
                 hideCutLines={hideCutLines}
                 hideFoldLines={hideFoldLines}
+                lineOpacity={lineOpacity}
+                lineThickness={lineThickness}
                 showThumbNotch={showThumbNotch}
+                thumbNotchSize={thumbNotchSize}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
                 masterOpacity={masterOpacity}
