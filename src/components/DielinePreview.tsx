@@ -103,7 +103,7 @@ function DustFlap({
       ];
   const points = pointPairs.map(([px, py]) => `${px},${py}`).join(" ");
   const cutStyle = { display: showOutline ? undefined : "none" };
-  const linePoints = pointPairs.map(([x1, y1], index) => {
+  const cutSegments = pointPairs.slice(0, -1).map(([x1, y1], index) => {
     const [x2, y2] = pointPairs[(index + 1) % pointPairs.length];
     return [x1, y1, x2, y2];
   });
@@ -111,7 +111,7 @@ function DustFlap({
   return (
     <g>
       <polygon points={points} className="flap-fill" data-export-layer="flap-fill" style={{ fill: fill ?? "none" }} />
-      {linePoints.map(([x1, y1, x2, y2], index) => (
+      {cutSegments.map(([x1, y1, x2, y2], index) => (
         <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} className="cut-shape" style={cutStyle} />
       ))}
     </g>
