@@ -22,6 +22,47 @@ function removeDuplicateLines(svg: SVGSVGElement): void {
     seen.add(key);
   });
 }
+function localReferenceId(reference: string | null): string | undefined {
+  if (!reference?.startsWith("#")) return undefined;
+  try {
+    return decodeURIComponent(reference.slice(1));
+  } catch {
+    return reference.slice(1);
+  }
+}
+
+function flattenUseReferences(svg: SVGSVGElement): void {
+  svg.querySelectorAll<SVGUseElement>("use").forEach((use) => {
+    const id = localReferenceId(use.getAttribute("href") ?? use.getAttribute("xlink:href"));
+    if (!id) return;
+
+    const referenced = svg.getElementById(id);
+    if (!referenced) return;
+
+    const replacement = referenced.cloneNode(true) as SVGElement;
+    replacement.removeAttribute("id");
+    replacement.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
+
+    const inheritedTransform = use.getAttribute("transform");
+    const offsetTransform =
+      use.hasAttribute("x") || use.hasAttribute("y")
+        ? `translate(${use.getAttribute("x") ?? "0"} ${use.getAttribute("y") ?? "0"})`
+        : undefined;
+    const existingTransform = replacement.getAttribute("transform");
+    const transforms = [inheritedTransform, existingTransform, offsetTransform].filter(Boolean);
+
+    if (transforms.length > 0) {
+      replacement.setAttribute("transform", transforms.join(" "));
+    }
+
+    Array.from(use.attributes).forEach((attribute) => {
+      if (["href", "xlink:href", "x", "y", "transform"].includes(attribute.name)) return;
+      replacement.setAttribute(attribute.name, attribute.value);
+    });
+
+    use.replaceWith(replacement);
+  });
+}
 function exportClone(
   source: SVGSVGElement,
   includeBleedGuides: boolean,
@@ -61,6 +102,42 @@ function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+async function imageFromUrl(url: string): Promise<HTMLImageElement> {
+  const image = new Image();
+  const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to rasterize SVG for PDF export."));
+  });
+  image.src = url;
+  return loaded;
+}
+
+async function addRasterizedSvgToPdf(
+  pdf: InstanceType<typeof import("jspdf").jsPDF>,
+  svg: SVGSVGElement,
+  paper: Paper
+): Promise<void> {
+  const serialized = new XMLSerializer().serializeToString(svg);
+  const url = URL.createObjectURL(new Blob([serialized], { type: "image/svg+xml;charset=utf-8" }));
+
+  try {
+    const image = await imageFromUrl(url);
+    const scale = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(paper.width * scale);
+    canvas.height = Math.round(paper.height * scale);
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas is unavailable for PDF export.");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, paper.width, paper.height);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 export function downloadSvg(
   source: SVGSVGElement,
   includeBleedGuides: boolean,
@@ -80,18 +157,28 @@ export async function downloadPdf(
 ) {
   const [{ jsPDF }] = await Promise.all([import("jspdf"), import("svg2pdf.js")]);
   const clone = exportClone(source, includeBleedGuides, "artwork");
+  flattenUseReferences(clone);
   document.body.appendChild(clone);
   clone.style.position = "fixed";
   clone.style.left = "-10000px";
 
   try {
-    const pdf = new jsPDF({
+    const createPdf = () => new jsPDF({
       orientation: paper.orientation === "portrait" ? "p" : "l",
       unit: "mm",
       format: [paper.width, paper.height],
       compress: true
     });
-    await pdf.svg(clone, { x: 0, y: 0, width: paper.width, height: paper.height });
+    let pdf = createPdf();
+
+    try {
+      await pdf.svg(clone, { x: 0, y: 0, width: paper.width, height: paper.height });
+    } catch (error) {
+      console.warn("Vector PDF export failed; falling back to rasterized SVG.", error);
+      pdf = createPdf();
+      await addRasterizedSvgToPdf(pdf, clone, paper);
+    }
+
     pdf.save(filename);
   } finally {
     clone.remove();

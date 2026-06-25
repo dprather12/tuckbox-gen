@@ -5,6 +5,7 @@ import { DielinePreview } from "./components/DielinePreview";
 import {
   calculateDieline,
   fitsOnPaper,
+  SAFE_MARGIN_MM,
   geometriesForPage,
   resolvePaper,
   scaleDielineGeometry,
@@ -297,6 +298,8 @@ export default function App() {
     fitsOnPaper(printGeometry.totalWidth, printGeometry.totalHeight, paper);
   const requiredWidth = printGeometry.totalWidth;
   const requiredHeight = printGeometry.totalHeight;
+  const printableWidth = paper.width - SAFE_MARGIN_MM * 2;
+  const printableHeight = paper.height - SAFE_MARGIN_MM * 2;
   const calculatorCardLabel = dimensionCalculator.sleeved ? "Sleeved card" : "Card";
 
   const handleUnitChange = (newUnit: Unit) => {
@@ -460,7 +463,7 @@ export default function App() {
     ).length + (useWrapArtwork && wrapArtwork ? 1 : 0);
 
   const handleSvgDownload = (mode = svgExportMode) => {
-    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
+    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits) return;
     downloadSvg(svgRef.current, false, mode);
     trackEvent("template_download", {
       format: mode === "cut" ? "svg_cut" : "svg_artwork",
@@ -478,7 +481,7 @@ export default function App() {
   };
 
   const handlePdf = async () => {
-    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
+    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits) return;
     setExporting(true);
     try {
       await downloadPdf(svgRef.current, paper, false);
@@ -1117,7 +1120,7 @@ export default function App() {
               <strong>This box will not fit at the selected template size.</strong>
               <span>
                 Template size: {requiredWidth.toFixed(1)} × {requiredHeight.toFixed(1)} mm.
-                Available paper: {paper.width.toFixed(1)} × {paper.height.toFixed(1)} mm.
+                Printable area: {printableWidth.toFixed(1)} × {printableHeight.toFixed(1)} mm.
               </span>
             </div>
           ) : null}
@@ -1165,7 +1168,7 @@ export default function App() {
                 </div>
               </label>
               <div className="export-actions">
-                <button className="primary-button export-download-button pdf-download-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exporting} onClick={handlePdf}>
+                <button className="primary-button export-download-button pdf-download-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits || exporting} onClick={handlePdf}>
                   {exporting ? (
                     <span className="export-download-format">Building PDF...</span>
                   ) : (
@@ -1179,7 +1182,7 @@ export default function App() {
                   <button
                     className="secondary-button export-download-button svg-download-button"
                     type="button"
-                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits}
                     onClick={() => handleSvgDownload()}
                   >
                     <span className="export-download-kicker">Download</span>
@@ -1190,7 +1193,7 @@ export default function App() {
                     type="button"
                     aria-label="Choose SVG export type"
                     aria-expanded={showSvgMenu}
-                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits}
                     onClick={() => setShowSvgMenu((current) => !current)}
                   >
                     <span className="svg-menu-caret" aria-hidden="true" />

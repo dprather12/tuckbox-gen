@@ -136,7 +136,7 @@ export function fitsOnPaper(
   dielineWidth: number,
   dielineHeight: number,
   paper: Paper,
-  margin = 0,
+  margin = SAFE_MARGIN_MM,
   bleed = 0
 ): boolean {
   return (
@@ -175,11 +175,11 @@ export function resolvePaper(
     // Neither fits: return the one with least overflow
     return [portrait, landscape].reduce((best, current) => {
       const bestOverflow =
-        Math.max(0, dielineWidth - best.width) +
-        Math.max(0, dielineHeight - best.height);
+        Math.max(0, dielineWidth - (best.width - SAFE_MARGIN_MM * 2)) +
+        Math.max(0, dielineHeight - (best.height - SAFE_MARGIN_MM * 2));
       const currentOverflow =
-        Math.max(0, dielineWidth - current.width) +
-        Math.max(0, dielineHeight - current.height);
+        Math.max(0, dielineWidth - (current.width - SAFE_MARGIN_MM * 2)) +
+        Math.max(0, dielineHeight - (current.height - SAFE_MARGIN_MM * 2));
       return currentOverflow < bestOverflow ? current : best;
     });
   }
@@ -191,7 +191,7 @@ export function countDielinesOnPaper(
   dielineWidth: number,
   dielineHeight: number,
   paper: Paper,
-  margin = 0,
+  margin = SAFE_MARGIN_MM,
   copyGap = COPY_GAP_MM
 ): number {
   const availableWidth = paper.width - margin * 2;
@@ -220,7 +220,8 @@ export function geometryForPage(
   bottomClosure: BottomClosure = "tuck",
   glueTabOverride?: number,
   tuckLipOverride?: number,
-  scale = 1
+  scale = 1,
+  margin = SAFE_MARGIN_MM
 ): DielineGeometry {
   const geometry = scaleDielineGeometry(
     calculateDieline(dimensions, bottomClosure, glueTabOverride, tuckLipOverride),
@@ -228,8 +229,8 @@ export function geometryForPage(
   );
   return {
     ...geometry,
-    pageX: (paper.width - geometry.totalWidth) / 2,
-    pageY: (paper.height - geometry.totalHeight) / 2
+    pageX: margin + (paper.width - margin * 2 - geometry.totalWidth) / 2,
+    pageY: margin + (paper.height - margin * 2 - geometry.totalHeight) / 2
   };
 }
 
@@ -240,10 +241,11 @@ export function geometriesForPage(
   bottomClosure: BottomClosure = "tuck",
   glueTabOverride?: number,
   tuckLipOverride?: number,
-  scale = 1
+  scale = 1,
+  margin = SAFE_MARGIN_MM
 ): DielineGeometry[] {
   if (!fillPage) {
-    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, tuckLipOverride, scale)];
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, tuckLipOverride, scale, margin)];
   }
 
   const geometry = scaleDielineGeometry(
@@ -252,21 +254,23 @@ export function geometriesForPage(
   );
   const footprintWidth = geometry.totalWidth + COPY_GAP_MM;
   const footprintHeight = geometry.totalHeight + COPY_GAP_MM;
+  const availableWidth = paper.width - margin * 2;
+  const availableHeight = paper.height - margin * 2;
   const columns = Math.floor(
-    (paper.width + COPY_GAP_MM + FIT_EPSILON_MM) / footprintWidth
+    (availableWidth + COPY_GAP_MM + FIT_EPSILON_MM) / footprintWidth
   );
   const rows = Math.floor(
-    (paper.height + COPY_GAP_MM + FIT_EPSILON_MM) / footprintHeight
+    (availableHeight + COPY_GAP_MM + FIT_EPSILON_MM) / footprintHeight
   );
 
   if (columns < 1 || rows < 1) {
-    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, tuckLipOverride, scale)];
+    return [geometryForPage(dimensions, paper, bottomClosure, glueTabOverride, tuckLipOverride, scale, margin)];
   }
 
   const layoutWidth = columns * geometry.totalWidth + (columns - 1) * COPY_GAP_MM;
   const layoutHeight = rows * geometry.totalHeight + (rows - 1) * COPY_GAP_MM;
-  const startX = (paper.width - layoutWidth) / 2;
-  const startY = (paper.height - layoutHeight) / 2;
+  const startX = margin + (availableWidth - layoutWidth) / 2;
+  const startY = margin + (availableHeight - layoutHeight) / 2;
 
   return Array.from({ length: rows * columns }, (_, index) => ({
     ...geometry,
