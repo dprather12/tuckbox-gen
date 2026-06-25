@@ -267,7 +267,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .glue-tab-slider input:disabled { opacity: .5; cursor: not-allowed; }
 .glue-tab-number { min-width: 8.5rem; max-width: 100%; }
 .crop-controls { display: grid; gap: 10px; }
-.crop-help { margin: 0; color: #718078; font-size: .65rem; line-height: 1.35; }
+.crop-help { margin: 0; color: #d1a75d; font-size: .70rem; line-height: 1.35; }
 .crop-actions { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
 .crop-background { display: grid; gap: 4px; color: #627168; font-size: .65rem; }
 .crop-reset-button {

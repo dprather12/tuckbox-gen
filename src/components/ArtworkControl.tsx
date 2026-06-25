@@ -325,17 +325,17 @@ export function ArtworkControl({
               {artwork.fit === "crop" && (
                 <div className="crop-controls">
                   <p className="crop-help">
-                    Drag the image in the print preview, or use the controls below.
+                    Drag the image in the preview window
                   </p>
                   <div className="range-grid">
                     <label>
-                      <span>Zoom <output>{artwork.zoom.toFixed(1)}×</output></span>
+                      <span>Zoom <output>{artwork.zoom.toFixed(2)}×</output></span>
                       <input
                         aria-label="Crop zoom"
                         type="range"
                         min="0.2"
                         max="4"
-                        step="0.1"
+                        step="0.05"
                         value={artwork.zoom}
                         onChange={(event) => patch({ zoom: Number(event.target.value) })}
                       />

@@ -910,7 +910,7 @@ export default function App() {
                     aria-expanded={showOpacitySettings}
                     onClick={() => setShowOpacitySettings((current) => !current)}
                   >
-                    <span>Set image opacity</span>
+                    <span>Image opacity</span>
                     <span aria-hidden="true">{showOpacitySettings ? "-" : "+"}</span>
                   </button>
                   {showOpacitySettings && (
