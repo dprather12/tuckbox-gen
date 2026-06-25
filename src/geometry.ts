@@ -15,6 +15,7 @@ export const BLEED_MM = 3;
 export const COPY_GAP_MM = 5;
 export const SAFE_MARGIN_MM = 6.35;
 export const MAX_FLAP_MM = 19.05;
+const MIN_TUCK_LIP_MM = 19.05;
 export const MAX_GLUE_TAB_MM = 17.78;
 const FIT_EPSILON_MM = 0.01;
 
@@ -43,7 +44,7 @@ export function calculateDieline(
     glueTabOverride !== undefined && Number.isFinite(glueTabOverride) && glueTabOverride > 0
       ? glueTabOverride
       : automaticGlueTab;
-  const automaticTuckLip = Math.min(MAX_FLAP_MM, Math.max(9, d * 0.9));
+  const automaticTuckLip = MIN_TUCK_LIP_MM;
   const tuckLip =
     tuckLipOverride !== undefined && Number.isFinite(tuckLipOverride) && tuckLipOverride > 0
       ? tuckLipOverride
