@@ -75,13 +75,48 @@ function richPieces(settings: TextSettings): RichPiece[] {
   return pieces;
 }
 
-function pieceWidth(piece: RichPiece): number {
+let measureContext: CanvasRenderingContext2D | undefined;
+const measuredWidthCache = new Map<string, number>();
+
+function estimatedPieceWidth(piece: RichPiece): number {
   const fontSizeMm = piece.style.fontSize * 0.352778;
   return [...piece.text].reduce(
     (width, character) =>
       width + fontSizeMm * (character === " " ? 0.33 : 0.55) * (piece.style.bold ? 1.04 : 1),
     0
   );
+}
+
+function quoteFontFamily(fontFamily: string): string {
+  return fontFamily
+    .split(",")
+    .map((family) => {
+      const trimmed = family.trim();
+      return /\s/.test(trimmed) && !/^['"].*['"]$/.test(trimmed)
+        ? `"${trimmed}"`
+        : trimmed;
+    })
+    .join(", ");
+}
+
+function pieceWidth(piece: RichPiece): number {
+  if (typeof document === "undefined") return estimatedPieceWidth(piece);
+
+  measureContext ??= document.createElement("canvas").getContext("2d") ?? undefined;
+  if (!measureContext) return estimatedPieceWidth(piece);
+
+  const font = `${piece.style.italic ? "italic " : ""}${piece.style.bold ? "700" : "400"} ${piece.style.fontSize}pt ${quoteFontFamily(piece.style.fontFamily)}`;
+  const cacheKey = `${font}\n${piece.text}`;
+  const cached = measuredWidthCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  measureContext.font = font;
+  const measuredWidthMm = measureContext.measureText(piece.text).width * 0.264583;
+  const width = Number.isFinite(measuredWidthMm) && measuredWidthMm > 0
+    ? measuredWidthMm
+    : estimatedPieceWidth(piece);
+  measuredWidthCache.set(cacheKey, width);
+  return width;
 }
 
 function layoutRichText(pieces: RichPiece[], maxWidth: number): RichPiece[][] {
@@ -192,6 +227,38 @@ export function ArtworkImage({
         transform={transform}
         opacity={opacity}
       />
+    );
+  }
+
+  if (artwork.fit === "repeat") {
+    const tileHeight = rect.height;
+    const tileWidth = artwork.imageWidth && artwork.imageHeight
+      ? tileHeight * (artwork.imageWidth / artwork.imageHeight)
+      : tileHeight;
+    const tileCount = Math.max(1, Math.ceil(rect.width / tileWidth) + 1);
+
+    return (
+      <g
+        clipPath={`url(#${clipId})`}
+        mask={maskId ? `url(#${maskId})` : undefined}
+        transform={transform}
+        opacity={opacity}
+      >
+        {Array.from({ length: tileCount }, (_, index) => {
+          const x = rect.x + index * tileWidth;
+          return (
+            <image
+              key={index}
+              href={artwork.src}
+              x={x}
+              y={rect.y}
+              width={tileWidth}
+              height={tileHeight}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          );
+        })}
+      </g>
     );
   }
 

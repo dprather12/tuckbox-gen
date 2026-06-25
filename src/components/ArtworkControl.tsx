@@ -32,7 +32,7 @@ const LABELS: Record<FaceName, string> = {
   bottom: "Bottom"
 };
 
-function defaultText(face: FaceName): TextSettings {
+function defaultText(face: FaceName | "wrap"): TextSettings {
   return {
     content: "",
     html: "",
@@ -66,8 +66,7 @@ export function ArtworkControl({
   onTextChange
 }: Props) {
   const dragDepthRef = useRef(0);
-  const faceDefaults = face === "wrap" ? undefined : defaultText(face);
-  const textSettings = faceDefaults ? { ...faceDefaults, ...text } : undefined;
+  const textSettings = { ...defaultText(face), ...text };
   const latestTextRef = useRef<TextSettings | undefined>(textSettings);
   const [fontSizeInput, setFontSizeInput] = useState(String(textSettings?.fontSize ?? 16));
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -87,7 +86,7 @@ export function ArtworkControl({
         lineHeight: false
       }),
       Placeholder.configure({
-        placeholder: "Enter text for this face"
+        placeholder: face === "wrap" ? "Enter wrap text" : "Enter text for this face"
       })
     ],
     content: text?.html ?? text?.content ?? "",
@@ -98,7 +97,6 @@ export function ArtworkControl({
       }
     },
     onUpdate: ({ editor }) => {
-      if (face === "wrap") return;
       setEditorTick((t) => t + 1);
       const current = latestTextRef.current;
       onTextChange?.({
@@ -114,7 +112,7 @@ export function ArtworkControl({
   }, [face]);
 
   useEffect(() => {
-    if (!editor || face === "wrap") return;
+    if (!editor) return;
     const nextHtml = text?.html ?? text?.content ?? "";
     if ((nextHtml || "<p></p>") !== editor.getHTML()) {
       editor.commands.setContent(nextHtml, { emitUpdate: false });
@@ -145,7 +143,6 @@ export function ArtworkControl({
   }, [editorTick]);
 
   const patchText = (next: Partial<TextSettings>) => {
-    if (face === "wrap") return;
     const nextText = { ...defaultText(face), ...latestTextRef.current, ...next };
     latestTextRef.current = nextText;
     onTextChange?.(nextText);
@@ -249,7 +246,7 @@ export function ArtworkControl({
 
   return (
     <article
-      className={`art-card ${hasContent ? "has-art" : ""} ${allowRepeat ? "wrap-art-card" : ""} ${isDraggingFile ? "dragging-file" : ""}`}
+      className={`art-card ${hasContent ? "has-art" : ""} ${face === "wrap" ? "wrap-art-card" : ""} ${isDraggingFile ? "dragging-file" : ""}`}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -274,7 +271,7 @@ export function ArtworkControl({
         )}
       </div>
 
-      {face !== "wrap" && onModeChange && (
+      {onModeChange && (
         <div className="segmented compact content-mode">
           <button
             className={mode === "image" ? "active" : ""}
@@ -314,7 +311,7 @@ export function ArtworkControl({
           {artwork && (
             <>
               <p className="file-name" title={artwork.name}>{artwork.name}</p>
-              <div className="segmented compact">
+              <div className="segmented compact fit-mode">
                 <button className={artwork.fit === "crop" ? "active" : ""} type="button" onClick={() => patch({ fit: "crop" })}>Crop</button>
                 <button className={artwork.fit === "stretch" ? "active" : ""} type="button" onClick={() => patch({ fit: "stretch" })}>Stretch</button>
                 {allowRepeat && (
@@ -378,28 +375,30 @@ export function ArtworkControl({
         </>
       )}
 
-      {mode === "text" && face !== "wrap" && textSettings && (
-        <div className="text-editor">
-          <div className="text-orientation-group">
-            <span>Text orientation</span>
-            <div className="segmented compact text-orientation">
-              <button
-                className={textSettings.orientation === "horizontal" ? "active" : ""}
-                type="button"
-                onClick={() => patchText({ orientation: "horizontal" })}
-              >
-                Horizontal
-              </button>
-              <button
-                className={textSettings.orientation === "vertical" ? "active" : ""}
-                type="button"
-                onClick={() => patchText({ orientation: "vertical" })}
-              >
-                Vertical
-              </button>
+      {mode === "text" && textSettings && (
+        <div className={`text-editor ${face === "wrap" ? "wrap-text-editor" : ""}`}>
+          {face !== "wrap" && (
+            <div className="text-orientation-group">
+              <span>Text orientation</span>
+              <div className="segmented compact text-orientation">
+                <button
+                  className={textSettings.orientation === "horizontal" ? "active" : ""}
+                  type="button"
+                  onClick={() => patchText({ orientation: "horizontal" })}
+                >
+                  Horizontal
+                </button>
+                <button
+                  className={textSettings.orientation === "vertical" ? "active" : ""}
+                  type="button"
+                  onClick={() => patchText({ orientation: "vertical" })}
+                >
+                  Vertical
+                </button>
+              </div>
             </div>
-          </div>
-          {textSettings.orientation === "vertical" && (
+          )}
+          {face !== "wrap" && textSettings.orientation === "vertical" && (
             <label className="mirror-text-option">
               <input
                 type="checkbox"

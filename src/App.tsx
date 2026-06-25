@@ -90,8 +90,11 @@ export default function App() {
   const [artwork, setArtwork] = useState<ArtworkMap>({});
   const [faceModes, setFaceModes] = useState<FaceModeMap>(initialPreferences.faceModes);
   const [faceText, setFaceText] = useState<TextMap>({});
-  const [useWrapArtwork, setUseWrapArtwork] = useState(initialPreferences.useWrapArtwork);
   const [wrapArtwork, setWrapArtwork] = useState<ArtworkSettings>();
+  const [wrapMode, setWrapMode] = useState<FaceContentMode>("image");
+  const [wrapText, setWrapText] = useState<TextSettings>();
+  const useWrapArtwork = wrapMode === "image" && Boolean(wrapArtwork);
+  const useWrapText = wrapMode === "text" && Boolean(wrapText?.content.trim());
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const svgMenuRef = useRef<HTMLDivElement>(null);
@@ -443,6 +446,7 @@ export default function App() {
       trackEvent("artwork_remove", { face: "wrap" });
     }
     setWrapArtwork(next);
+    if (next) setWrapMode("image");
   };
 
   const updateArtworkPosition = (
@@ -480,12 +484,15 @@ export default function App() {
   const hasAnyPanelContent =
     Object.keys(artwork).length > 0 ||
     Object.keys(faceText).length > 0 ||
-    Boolean(wrapArtwork);
+    Boolean(wrapArtwork) ||
+    Boolean(wrapText?.content.trim());
 
   const clearAllPanelContent = () => {
     setArtwork({});
     setFaceText({});
     setWrapArtwork(undefined);
+    setWrapText(undefined);
+    setWrapMode("image");
     trackEvent("artwork_clear_all", {
       image_faces: Object.keys(artwork).length + (wrapArtwork ? 1 : 0),
       text_faces: Object.keys(faceText).length
@@ -499,7 +506,7 @@ export default function App() {
       (faceModes[face] ?? "image") === "text"
         ? Boolean(faceText[face]?.content.trim())
         : Boolean(artwork[face])
-    ).length + (useWrapArtwork && wrapArtwork ? 1 : 0);
+    ).length + (useWrapArtwork && wrapArtwork ? 1 : 0) + (useWrapText ? 1 : 0);
 
   const handleSvgDownload = (mode = svgExportMode) => {
     if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits) return;
@@ -785,14 +792,6 @@ export default function App() {
               </button>
               {showMoreSettings && (
                 <div className="more-settings-content">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={useWrapArtwork}
-                      onChange={(event) => setUseWrapArtwork(event.target.checked)}
-                    />
-                    Use a single image to wrap around the front, back and sides
-                  </label>
                   <label>
                     <input
                       type="checkbox"
@@ -1103,15 +1102,7 @@ export default function App() {
               )}
             </div>
             <div className="artwork-grid">
-              {useWrapArtwork && (
-                <ArtworkControl
-                  face="wrap"
-                  artwork={wrapArtwork}
-                  onChange={updateWrapArtwork}
-                  allowRepeat
-                />
-              )}
-              {(useWrapArtwork ? (["top", "bottom"] as FaceName[]) : faces).map((face) => (
+              {faces.map((face) => (
                 <ArtworkControl
                   key={face}
                   face={face}
@@ -1123,8 +1114,19 @@ export default function App() {
                   onChange={(selectedFace, next) =>
                     updateArtwork(selectedFace as FaceName, next)
                   }
+                  allowRepeat
                 />
               ))}
+              <ArtworkControl
+                face="wrap"
+                artwork={wrapArtwork}
+                mode={wrapMode}
+                text={wrapText}
+                onModeChange={setWrapMode}
+                onTextChange={setWrapText}
+                onChange={updateWrapArtwork}
+                allowRepeat
+              />
             </div>
           </section>
         </aside>
@@ -1209,7 +1211,9 @@ export default function App() {
                 showThumbNotch={showThumbNotch}
                 thumbNotchSize={thumbNotchSize}
                 useWrapArtwork={useWrapArtwork}
-                wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
+                wrapArtwork={wrapArtwork}
+                wrapMode={wrapMode}
+                wrapText={wrapText}
                 masterOpacity={masterOpacity}
                 faceOpacities={faceOpacities}
               />
@@ -1249,7 +1253,9 @@ export default function App() {
                 showThumbNotch={showThumbNotch}
                 thumbNotchSize={thumbNotchSize}
                 useWrapArtwork={useWrapArtwork}
-                wrapArtwork={useWrapArtwork ? wrapArtwork : undefined}
+                wrapArtwork={wrapArtwork}
+                wrapMode={wrapMode}
+                wrapText={wrapText}
                 masterOpacity={masterOpacity}
                 faceOpacities={faceOpacities}
                 onArtworkPositionChange={updateArtworkPosition}

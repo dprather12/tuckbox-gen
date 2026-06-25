@@ -3,11 +3,13 @@ import type {
   ArtworkMap,
   ArtworkSettings,
   BoxDimensions,
+  FaceContentMode,
   FaceModeMap,
   FaceName,
   FaceOpacityMap,
   Rect,
-  TextMap
+  TextMap,
+  TextSettings
 } from "../types";
 import { ArtworkImage, FaceText, cropImageRect } from "./FaceArtwork";
 
@@ -20,6 +22,8 @@ interface Props {
   thumbNotchSize: number;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
+  wrapMode: FaceContentMode;
+  wrapText?: TextSettings;
   masterOpacity: number;
   faceOpacities: FaceOpacityMap;
 }
@@ -213,6 +217,8 @@ function FaceSvg({
   thumbNotchSize,
   useWrapArtwork,
   wrapArtwork,
+  wrapMode,
+  wrapText,
   wrapRect,
   wrapViewX,
   opacity,
@@ -230,6 +236,8 @@ function FaceSvg({
   thumbNotchSize: number;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
+  wrapMode: FaceContentMode;
+  wrapText?: TextSettings;
   wrapRect: Rect;
   wrapViewX: number;
   opacity: number;
@@ -242,6 +250,7 @@ function FaceSvg({
   const patternId = `${rawId}-${face}-wrap-pattern`;
   const isBody = face === "front" || face === "back" || face === "left" || face === "right";
   const usesWrap = isBody && useWrapArtwork && Boolean(wrapArtwork);
+  const usesWrapText = isBody && wrapMode === "text" && Boolean(wrapText?.content.trim());
   const notchRadius = Math.min(width / 2, Math.max(0.5, thumbNotchSize));
   const centerX = width / 2;
   const facePath = face === "front" && showThumbNotch
@@ -310,7 +319,12 @@ function FaceSvg({
               />
             </g>
           )}
-          {!rasterizedArtwork && !usesWrap && (faceModes[face] ?? "image") === "image" && (
+          {usesWrapText && (
+            <g transform={`translate(${-wrapViewX} 0)`}>
+              <FaceText rect={wrapRect} settings={wrapText} clipId={wrapClipId} opacity={opacity} />
+            </g>
+          )}
+          {!rasterizedArtwork && (faceModes[face] ?? "image") === "image" && (
             <ArtworkImage
               rect={localRect}
               artwork={artwork[face]}
@@ -318,7 +332,7 @@ function FaceSvg({
               opacity={opacity}
             />
           )}
-          {!usesWrap && (faceModes[face] ?? "image") === "text" && (
+          {(faceModes[face] ?? "image") === "text" && (
             <FaceText rect={localRect} settings={faceText[face]} clipId={clipId} opacity={opacity} />
           )}
         </g>
@@ -338,6 +352,8 @@ export function AssembledBoxPreview({
   thumbNotchSize,
   useWrapArtwork,
   wrapArtwork,
+  wrapMode,
+  wrapText,
   masterOpacity,
   faceOpacities
 }: Props) {
@@ -387,26 +403,12 @@ export function AssembledBoxPreview({
     const next: Partial<Record<FaceName, ArtworkSettings>> = {};
     (Object.keys(faceSizes) as FaceName[]).forEach((face) => {
       const isBody = face === "front" || face === "back" || face === "left" || face === "right";
-      if (isBody && useWrapArtwork && wrapArtwork) {
-        if (wrapArtwork.fit === "repeat") {
-          next[face] = wrapArtwork;
-          return;
-        }
-        const faceSize = faceSizes[face];
-        next[face] = {
-          ...wrapArtwork,
-          offsetX:
-            wrapArtwork.offsetX +
-            ((wrapRect.width / 2 - wrapOffsets[face] - faceSize.width / 2) / faceSize.width) * 200,
-          offsetY: wrapArtwork.offsetY,
-          zoom: wrapArtwork.zoom * (wrapRect.width / faceSize.width)
-        };
-        return;
-      }
+      const hasWrapBase = (useWrapArtwork && wrapArtwork) || (wrapMode === "text" && wrapText?.content.trim());
+      if (isBody && hasWrapBase) return;
       if ((faceModes[face] ?? "image") === "image") next[face] = artwork[face];
     });
     return next;
-  }, [artwork, faceModes, faceSizes, useWrapArtwork, wrapArtwork, wrapOffsets, wrapRect.width]);
+  }, [artwork, faceModes, faceSizes, useWrapArtwork, wrapArtwork, wrapMode, wrapText]);
   const moveRotation = (deltaX: number, deltaY: number) => {
     setRotation((current) => ({
       x: clampPreviewTilt(current.x - deltaY),
@@ -555,6 +557,8 @@ export function AssembledBoxPreview({
                   thumbNotchSize={thumbNotchSize}
                   useWrapArtwork={useWrapArtwork}
                   wrapArtwork={wrapArtwork}
+                  wrapMode={wrapMode}
+                  wrapText={wrapText}
                   wrapRect={wrapRect}
                   wrapViewX={wrapOffsets[face]}
                   opacity={opacityForFace(face)}

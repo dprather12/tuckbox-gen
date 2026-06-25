@@ -11,12 +11,14 @@ import type {
   ArtworkMap,
   ArtworkSettings,
   DielineGeometry,
+  FaceContentMode,
   FaceModeMap,
   FaceName,
   FaceOpacityMap,
   Paper,
   Rect,
-  TextMap
+  TextMap,
+  TextSettings
 } from "../types";
 
 interface Props {
@@ -35,6 +37,8 @@ interface Props {
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
+  wrapMode: FaceContentMode;
+  wrapText?: TextSettings;
   masterOpacity: number;
   faceOpacities: FaceOpacityMap;
   onArtworkPositionChange: (
@@ -136,6 +140,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     showThumbNotch,
     useWrapArtwork,
     wrapArtwork,
+    wrapMode,
+    wrapText,
     masterOpacity,
     faceOpacities,
     onArtworkPositionChange
@@ -227,9 +233,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const opacityForFace = (face: FaceName) =>
       (masterOpacity / 100) * ((faceOpacities[face] ?? 100) / 100);
     const draggableFaces = faces.filter(
-      ([face]) =>
-        !(useWrapArtwork && ["front", "back", "left", "right"].includes(face)) &&
-        imageForFace(face)?.fit === "crop"
+      ([face]) => imageForFace(face)?.fit === "crop"
     );
     const beginArtworkDrag = (
       event: ReactPointerEvent<SVGRectElement>,
@@ -404,8 +408,15 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                 />
               ))
           )}
+          {wrapMode === "text" && (
+            <FaceText
+              rect={bodyRect}
+              settings={wrapText}
+              clipId={`${rawId}-body-wrap`}
+              opacity={masterOpacity / 100}
+            />
+          )}
           {faces.map(([face, rect]) => (
-            useWrapArtwork && ["front", "back", "left", "right"].includes(face) ? null :
             <ArtworkImage
               key={face}
               rect={rect}
@@ -415,8 +426,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
             />
           ))}
           {faces.map(([face, rect]) => (
-            (faceModes[face] ?? "image") === "text" &&
-            !(useWrapArtwork && ["front", "back", "left", "right"].includes(face)) ? (
+            (faceModes[face] ?? "image") === "text" ? (
               <FaceText
                 key={`text-${face}`}
                 rect={rect}

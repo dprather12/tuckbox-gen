@@ -115,6 +115,8 @@ main { min-height: 100vh; }
 .segmented button.active { background: #fff; color: #183528; box-shadow: 0 2px 8px rgba(30,46,37,.1); }
 .segmented.compact { margin: 6px 0; }
 .segmented.compact button { padding: 6px; font-size: .78rem; }
+.segmented.fit-mode { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.segmented.fit-mode button { padding: 6px 4px; font-size: .74rem; }
 .dimension-entry-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
@@ -318,6 +320,17 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 }
 .rich-text-prosemirror p {
   margin: 0;
+}
+.wrap-text-editor .rich-text-input {
+  overflow-x: auto;
+}
+.wrap-text-editor .rich-text-prosemirror {
+  width: max-content;
+  min-width: 100%;
+  white-space: pre;
+}
+.wrap-text-editor .rich-text-prosemirror p {
+  white-space: pre;
 }
 .rich-text-prosemirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
@@ -898,7 +911,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 }
 .more-settings-content input { accent-color: #315a46; }
 .wrap-art-card { grid-column: 1 / -1; }
-.wrap-art-card .segmented { grid-template-columns: repeat(3, 1fr); }
+.wrap-art-card .fit-mode { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .white-flaps-option input {
   width: 18px;
   height: 18px;
