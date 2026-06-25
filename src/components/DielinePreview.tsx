@@ -69,6 +69,7 @@ function DustFlap({
   width,
   height,
   top,
+  lockingSide,
   fill,
   showOutline
 }: {
@@ -77,25 +78,35 @@ function DustFlap({
   width: number;
   height: number;
   top: boolean;
+  lockingSide?: "left" | "right";
   fill?: string;
   showOutline: boolean;
 }) {
   const inset = Math.min(width * 0.2, 3);
-  const points = top
-    ? `${x},${y + height} ${x + inset},${y} ${x + width - inset},${y} ${x + width},${y + height}`
-    : `${x + width},${y} ${x + width - inset},${y + height} ${x + inset},${y + height} ${x},${y}`;
-  const cutStyle = { display: showOutline ? undefined : "none" };
-  const linePoints = top
+  const shoulder = top && lockingSide
+    ? Math.min(height * 0.28, Math.max(2, height * 0.16))
+    : 0;
+  const pointPairs = top
     ? [
-        [x, y + height, x + inset, y],
-        [x + inset, y, x + width - inset, y],
-        [x + width - inset, y, x + width, y + height]
+        [x, y + height],
+        ...(lockingSide === "left" ? [[x, y + height - shoulder]] : []),
+        [x + inset, y],
+        [x + width - inset, y],
+        ...(lockingSide === "right" ? [[x + width, y + height - shoulder]] : []),
+        [x + width, y + height]
       ]
     : [
-        [x + width, y, x + width - inset, y + height],
-        [x + width - inset, y + height, x + inset, y + height],
-        [x + inset, y + height, x, y]
+        [x + width, y],
+        [x + width - inset, y + height],
+        [x + inset, y + height],
+        [x, y]
       ];
+  const points = pointPairs.map(([px, py]) => `${px},${py}`).join(" ");
+  const cutStyle = { display: showOutline ? undefined : "none" };
+  const linePoints = pointPairs.map(([x1, y1], index) => {
+    const [x2, y2] = pointPairs[(index + 1) % pointPairs.length];
+    return [x1, y1, x2, y2];
+  });
 
   return (
     <g>
@@ -175,11 +186,27 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
       ? `M ${bottomUnderFlap.x} ${bottomUnderFlap.y} L ${bottomUnderFlap.x + 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width - 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width} ${bottomUnderFlap.y}`
       : "";
     const dustFlapDepth = Math.min(MAX_FLAP_MM, panels.left.width);
-    const dustPoints = (rect: Rect, topSide: boolean) => {
+    const dustPoints = (rect: Rect, topSide: boolean, lockingSide?: "left" | "right") => {
       const inset = Math.min(rect.width * 0.2, 3);
-      return topSide
-        ? `${rect.x},${rect.y + rect.height} ${rect.x + inset},${rect.y} ${rect.x + rect.width - inset},${rect.y} ${rect.x + rect.width},${rect.y + rect.height}`
-        : `${rect.x + rect.width},${rect.y} ${rect.x + rect.width - inset},${rect.y + rect.height} ${rect.x + inset},${rect.y + rect.height} ${rect.x},${rect.y}`;
+      const shoulder = topSide && lockingSide
+        ? Math.min(rect.height * 0.28, Math.max(2, rect.height * 0.16))
+        : 0;
+      const points = topSide
+        ? [
+            [rect.x, rect.y + rect.height],
+            ...(lockingSide === "left" ? [[rect.x, rect.y + rect.height - shoulder]] : []),
+            [rect.x + inset, rect.y],
+            [rect.x + rect.width - inset, rect.y],
+            ...(lockingSide === "right" ? [[rect.x + rect.width, rect.y + rect.height - shoulder]] : []),
+            [rect.x + rect.width, rect.y + rect.height]
+          ]
+        : [
+            [rect.x + rect.width, rect.y],
+            [rect.x + rect.width - inset, rect.y + rect.height],
+            [rect.x + inset, rect.y + rect.height],
+            [rect.x, rect.y]
+          ];
+      return points.map(([px, py]) => `${px},${py}`).join(" ");
     };
     const topDustY = py + g.bodyY - dustFlapDepth;
     const leftTopDust = { x: panels.left.x, y: topDustY, width: panels.left.width, height: dustFlapDepth };
@@ -305,8 +332,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           </pattern>
           <clipPath id={`${rawId}-top-flap`}><path d={topFlapPath} /></clipPath>
           <clipPath id={`${rawId}-bottom-flap`}><path d={bottomFlapPath} /></clipPath>
-          <clipPath id={`${rawId}-left-top-dust`}><polygon points={dustPoints(leftTopDust, true)} /></clipPath>
-          <clipPath id={`${rawId}-right-top-dust`}><polygon points={dustPoints(rightTopDust, true)} /></clipPath>
+          <clipPath id={`${rawId}-left-top-dust`}><polygon points={dustPoints(leftTopDust, true, "right")} /></clipPath>
+          <clipPath id={`${rawId}-right-top-dust`}><polygon points={dustPoints(rightTopDust, true, "left")} /></clipPath>
           <clipPath id={`${rawId}-left-bottom-dust`}><polygon points={dustPoints(leftBottomDust, false)} /></clipPath>
           <clipPath id={`${rawId}-right-bottom-dust`}><polygon points={dustPoints(rightBottomDust, false)} /></clipPath>
           <clipPath id={`${rawId}-glue-tab`}><polygon points={gluePoints} /></clipPath>
@@ -409,8 +436,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
               <path d={bottomUnderPath} className="cut-shape" style={{ display: showCutLines ? undefined : "none" }} />
             </>
           )}
-          <DustFlap {...leftTopDust} top showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
-          <DustFlap {...rightTopDust} top showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
+          <DustFlap {...leftTopDust} top lockingSide="right" showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
+          <DustFlap {...rightTopDust} top lockingSide="left" showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
           <DustFlap {...leftBottomDust} top={false} showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("left")?.dominantColor : undefined} />
           <DustFlap {...rightBottomDust} top={false} showOutline={showCutLines} fill={colorFlaps ? wrapArtwork?.dominantColor ?? imageForFace("right")?.dominantColor : undefined} />
           <polygon
