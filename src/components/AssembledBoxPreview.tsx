@@ -27,9 +27,45 @@ const DEFAULT_ROTATION = { x: -18, y: 30 };
 const MIN_TILT = -55;
 const MAX_TILT = 35;
 const FACE_RASTER_SCALE = 3;
-
+const MINI_STAGE_FALLBACK = { width: 150, height: 100 };
+const LARGE_STAGE_FALLBACK = { width: 860, height: 560 };
+const STAGE_PADDING = {
+  mini: { x: 88, y: 84 },
+  large: { x: 210, y: 190 }
+};
 export function clampPreviewTilt(value: number): number {
   return Math.min(MAX_TILT, Math.max(MIN_TILT, value));
+}
+
+function getProjectedBoxSize(
+  dimensions: BoxDimensions,
+  rotation: { x: number; y: number }
+): { width: number; height: number } {
+  const xRadians = (rotation.x * Math.PI) / 180;
+  const yRadians = (rotation.y * Math.PI) / 180;
+  const sinX = Math.sin(xRadians);
+  const cosX = Math.cos(xRadians);
+  const sinY = Math.sin(yRadians);
+  const cosY = Math.cos(yRadians);
+  const xValues: number[] = [];
+  const yValues: number[] = [];
+
+  [-dimensions.width / 2, dimensions.width / 2].forEach((x) => {
+    [-dimensions.height / 2, dimensions.height / 2].forEach((y) => {
+      [-dimensions.depth / 2, dimensions.depth / 2].forEach((z) => {
+        const rotatedY = y * cosX - z * sinX;
+        const rotatedZ = y * sinX + z * cosX;
+        const rotatedX = x * cosY + rotatedZ * sinY;
+        xValues.push(rotatedX);
+        yValues.push(rotatedY);
+      });
+    });
+  });
+
+  return {
+    width: Math.max(...xValues) - Math.min(...xValues),
+    height: Math.max(...yValues) - Math.min(...yValues)
+  };
 }
 
 function clippedFacePath(
@@ -322,6 +358,12 @@ export function AssembledBoxPreview({
   const [rotation, setRotation] = useState(DEFAULT_ROTATION);
   const [expanded, setExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [stageSizes, setStageSizes] = useState({
+    mini: MINI_STAGE_FALLBACK,
+    large: LARGE_STAGE_FALLBACK
+  });
+  const miniStageRef = useRef<HTMLDivElement | null>(null);
+  const largeStageRef = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ pointerId: number; x: number; y: number } | undefined>(undefined);
   const dragged = useRef(false);
   const { width, depth, height } = dimensions;
@@ -426,6 +468,31 @@ export function AssembledBoxPreview({
   };
 
   useEffect(() => {
+    const observers: ResizeObserver[] = [];
+    const observeStage = (key: "mini" | "large", node: HTMLDivElement | null) => {
+      if (!node) return;
+      const updateSize = () => {
+        setStageSizes((current) => ({
+          ...current,
+          [key]: {
+            width: node.clientWidth || current[key].width,
+            height: node.clientHeight || current[key].height
+          }
+        }));
+      };
+      updateSize();
+      const observer = new ResizeObserver(updateSize);
+      observer.observe(node);
+      observers.push(observer);
+    };
+
+    observeStage("mini", miniStageRef.current);
+    observeStage("large", largeStageRef.current);
+
+    return () => observers.forEach((observer) => observer.disconnect());
+  }, [expanded]);
+
+  useEffect(() => {
     if (!expanded) return;
     const handleEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") setExpanded(false);
@@ -440,11 +507,14 @@ export function AssembledBoxPreview({
   }, [expanded]);
 
   const renderStage = (large = false) => {
+    const stageKey = large ? "large" : "mini";
     const faceResolutionScale = large ? 3 : 2;
+    const stageSize = stageSizes[stageKey];
+    const padding = STAGE_PADDING[stageKey];
+    const projectedBoxSize = getProjectedBoxSize(dimensions, DEFAULT_ROTATION);
     const scale = Math.min(
-      (large ? 520 : 76) / width,
-      (large ? 390 : 52) / depth,
-      (large ? 540 : 72) / height
+      Math.max(1, stageSize.width - padding.x) / Math.max(1, projectedBoxSize.width),
+      Math.max(1, stageSize.height - padding.y) / Math.max(1, projectedBoxSize.height)
     );
     const style = {
       "--box-width": `${width * scale}px`,
@@ -457,6 +527,7 @@ export function AssembledBoxPreview({
 
     return (
       <div
+        ref={large ? largeStageRef : miniStageRef}
         className={`assembled-stage${large ? " assembled-stage-large" : " assembled-stage-mini"}${isDragging ? " is-dragging" : ""}`}
         tabIndex={0}
         role="img"
