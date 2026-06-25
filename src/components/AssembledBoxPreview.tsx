@@ -9,7 +9,7 @@ import type {
   Rect,
   TextMap
 } from "../types";
-import { ArtworkImage, FaceText } from "./FaceArtwork";
+import { ArtworkImage, FaceText, cropImageRect } from "./FaceArtwork";
 
 interface Props {
   dimensions: BoxDimensions;
@@ -121,35 +121,13 @@ function drawArtworkImage(
     return;
   }
 
-  const targetRatio = rect.width / rect.height;
-  const imageRatio = image.naturalWidth / image.naturalHeight;
-  const sourceWidth = imageRatio > targetRatio
-    ? image.naturalHeight * targetRatio
-    : image.naturalWidth;
-  const sourceHeight = imageRatio > targetRatio
-    ? image.naturalHeight
-    : image.naturalWidth / targetRatio;
-  const zoom = Math.max(artwork.zoom || 1, 0.01);
-  const visibleSourceWidth = sourceWidth / zoom;
-  const visibleSourceHeight = sourceHeight / zoom;
-  const sourceX =
-    (image.naturalWidth - visibleSourceWidth) / 2 -
-    (artwork.offsetX / 100) * visibleSourceWidth * 0.5;
-  const sourceY =
-    (image.naturalHeight - visibleSourceHeight) / 2 -
-    (artwork.offsetY / 100) * visibleSourceHeight * 0.5;
-
-  context.drawImage(
-    image,
-    Math.max(0, Math.min(image.naturalWidth - visibleSourceWidth, sourceX)),
-    Math.max(0, Math.min(image.naturalHeight - visibleSourceHeight, sourceY)),
-    visibleSourceWidth,
-    visibleSourceHeight,
-    rect.x,
-    rect.y,
-    rect.width,
-    rect.height
+  const cropRect = cropImageRect(
+    rect,
+    artwork.imageWidth && artwork.imageHeight
+      ? artwork
+      : { ...artwork, imageWidth: image.naturalWidth, imageHeight: image.naturalHeight }
   );
+  context.drawImage(image, cropRect.x, cropRect.y, cropRect.width, cropRect.height);
 }
 
 function FaceCanvas({

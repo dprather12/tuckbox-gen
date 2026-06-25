@@ -137,7 +137,7 @@ function layoutRichText(pieces: RichPiece[], maxWidth: number): RichPiece[][] {
 }
 
 
-function cropImageRect(rect: Rect, artwork: ArtworkSettings): Rect {
+export function cropImageRect(rect: Rect, artwork: ArtworkSettings): Rect {
   const targetRatio = rect.width / rect.height;
   const imageRatio =
     artwork.imageWidth && artwork.imageHeight
