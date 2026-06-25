@@ -340,28 +340,6 @@ export function ArtworkControl({
                         onChange={(event) => patch({ zoom: Number(event.target.value) })}
                       />
                     </label>
-                    <label>
-                      <span>Move horizontally <output>{artwork.offsetX}%</output></span>
-                      <input
-                        aria-label="Crop horizontal position"
-                        type="range"
-                        min="-100"
-                        max="100"
-                        value={artwork.offsetX}
-                        onChange={(event) => patch({ offsetX: Number(event.target.value) })}
-                      />
-                    </label>
-                    <label>
-                      <span>Move vertically <output>{artwork.offsetY}%</output></span>
-                      <input
-                        aria-label="Crop vertical position"
-                        type="range"
-                        min="-100"
-                        max="100"
-                        value={artwork.offsetY}
-                        onChange={(event) => patch({ offsetY: Number(event.target.value) })}
-                      />
-                    </label>
                   </div>
                   <div className="crop-actions">
                     <label className="crop-background">

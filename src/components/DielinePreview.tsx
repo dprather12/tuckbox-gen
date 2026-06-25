@@ -54,8 +54,6 @@ interface ArtworkDrag {
   rect: Rect;
 }
 
-const clampOffset = (value: number) => Math.min(100, Math.max(-100, value));
-
 function svgPoint(
   element: SVGGraphicsElement,
   clientX: number,
@@ -263,8 +261,8 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
       event.preventDefault();
       onArtworkPositionChange(
         drag.target,
-        clampOffset(drag.startOffsetX + ((point.x - drag.startX) / drag.rect.width) * 200),
-        clampOffset(drag.startOffsetY + ((point.y - drag.startY) / drag.rect.height) * 200)
+        drag.startOffsetX + ((point.x - drag.startX) / drag.rect.width) * 200,
+        drag.startOffsetY + ((point.y - drag.startY) / drag.rect.height) * 200
       );
     };
     const endArtworkDrag = (event: ReactPointerEvent<SVGRectElement>) => {

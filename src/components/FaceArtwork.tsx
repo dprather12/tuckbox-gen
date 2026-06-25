@@ -136,6 +136,31 @@ function layoutRichText(pieces: RichPiece[], maxWidth: number): RichPiece[][] {
   return lines;
 }
 
+
+function cropImageRect(rect: Rect, artwork: ArtworkSettings): Rect {
+  const targetRatio = rect.width / rect.height;
+  const imageRatio =
+    artwork.imageWidth && artwork.imageHeight
+      ? artwork.imageWidth / artwork.imageHeight
+      : targetRatio;
+  const baseWidth = imageRatio > targetRatio ? rect.height * imageRatio : rect.width;
+  const baseHeight = imageRatio > targetRatio ? rect.height : rect.width / imageRatio;
+  const zoom = Math.max(artwork.zoom || 1, 0.01);
+  const width = baseWidth * zoom;
+  const height = baseHeight * zoom;
+  const desiredX =
+    rect.x - (width - rect.width) / 2 + (artwork.offsetX / 100) * rect.width * 0.5;
+  const desiredY =
+    rect.y - (height - rect.height) / 2 + (artwork.offsetY / 100) * rect.height * 0.5;
+
+  return {
+    x: desiredX,
+    y: desiredY,
+    width,
+    height
+  };
+}
+
 export function ArtworkImage({
   rect,
   artwork,
@@ -170,10 +195,7 @@ export function ArtworkImage({
     );
   }
 
-  const zoomedWidth = rect.width * artwork.zoom;
-  const zoomedHeight = rect.height * artwork.zoom;
-  const x = rect.x - (zoomedWidth - rect.width) / 2 + (artwork.offsetX / 100) * rect.width * 0.5;
-  const y = rect.y - (zoomedHeight - rect.height) / 2 + (artwork.offsetY / 100) * rect.height * 0.5;
+  const cropRect = cropImageRect(rect, artwork);
 
   return (
     <g
@@ -191,11 +213,11 @@ export function ArtworkImage({
       />
       <image
         href={artwork.src}
-        x={x}
-        y={y}
-        width={zoomedWidth}
-        height={zoomedHeight}
-        preserveAspectRatio="xMidYMid slice"
+        x={cropRect.x}
+        y={cropRect.y}
+        width={cropRect.width}
+        height={cropRect.height}
+        preserveAspectRatio="none"
       />
     </g>
   );
