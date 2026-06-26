@@ -42,7 +42,7 @@ function defaultText(face: FaceName | "wrap"): TextSettings {
     align: "center",
     verticalAlign: "center",
     orientation: face === "left" || face === "right" ? "vertical" : "horizontal",
-    mirrorVertical: false,
+    mirrorVertical: face === "left",
     bold: false,
     italic: false,
     underline: false
@@ -359,14 +359,7 @@ export function ArtworkControl({
                         </label>
                       </div>
                     </div>
-                    <button
-                      className="crop-reset-button"
-                      type="button"
-                      onClick={() => patch({ zoom: 1, offsetX: 0, offsetY: 0 })}
-                      disabled={artwork.zoom === 1 && artwork.offsetX === 0 && artwork.offsetY === 0}
-                    >
-                      Reset position
-                    </button>
+
                   </div>
                 </div>
               )}

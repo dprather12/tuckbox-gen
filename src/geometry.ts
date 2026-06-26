@@ -16,7 +16,7 @@ export const COPY_GAP_MM = 5;
 export const SAFE_MARGIN_MM = 6.35;
 export const MAX_FLAP_MM = 19.05;
 const MIN_TUCK_LIP_MM = 19.05;
-export const MAX_GLUE_TAB_MM = 17.78;
+export const MAX_GLUE_TAB_MM = 25.4;
 const FIT_EPSILON_MM = 0.01;
 
 const PAPER_SIZES: Record<Exclude<PaperSize, "custom">, { width: number; height: number; name: string }> = {
@@ -40,9 +40,10 @@ export function calculateDieline(
 ): Omit<DielineGeometry, "pageX" | "pageY"> {
   const { width: w, depth: d, height: h } = dimensions;
   const automaticGlueTab = Math.min(d * 0.95, MAX_GLUE_TAB_MM);
+  const manualGlueTabMax = Math.max(0, d - 2);
   const glueTab =
     glueTabOverride !== undefined && Number.isFinite(glueTabOverride) && glueTabOverride > 0
-      ? glueTabOverride
+      ? Math.min(glueTabOverride, manualGlueTabMax)
       : automaticGlueTab;
   const automaticTuckLip = MIN_TUCK_LIP_MM;
   const tuckLip =

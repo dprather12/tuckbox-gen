@@ -263,18 +263,18 @@ export default function App() {
     ]
   );
   const geometry = geometries[0];
+  const glueTabMinWidth = unit === "in" ? 0.01 : 0.1;
+  const glueTabMaxWidth = Math.max(glueTabMinWidth, fromMillimeters(Math.max(0, dimensionsMm.depth - 2), unit));
+  const clampGlueTabWidth = (value: number) =>
+    Math.min(glueTabMaxWidth, Math.max(glueTabMinWidth, Number.isFinite(value) ? value : glueTabMinWidth));
   const displayedGlueTabWidth = manualGlueTab
-    ? glueTabWidth
+    ? clampGlueTabWidth(glueTabWidth)
     : fromMillimeters(rawGeometry.glueTab, unit);
   const displayedGlueTabValue = Number(
     displayedGlueTabWidth.toFixed(unit === "in" ? 2 : 1)
   );
   const glueTabInputWidth = `calc(${String(displayedGlueTabValue).length}ch + 5.5rem)`;
-  const glueTabSliderMax = Math.max(
-    unit === "in" ? 2 : 50,
-    dimensions.depth * 2,
-    displayedGlueTabWidth
-  );
+  const glueTabSliderMax = glueTabMaxWidth;
   const displayedTuckFlapWidth = manualTuckFlap
     ? tuckFlapWidth
     : fromMillimeters(rawGeometry.tuckLip, unit);
@@ -1017,22 +1017,23 @@ export default function App() {
                         <div className="glue-tab-slider">
                           <input
                             type="range"
-                            min={unit === "in" ? 0.01 : 0.1}
+                            min={glueTabMinWidth}
                             max={glueTabSliderMax}
-                            step={unit === "in" ? 0.01 : 0.1}
+                            step={glueTabMinWidth}
                             value={displayedGlueTabWidth}
                             disabled={!manualGlueTab}
-                            onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                            onChange={(event) => setGlueTabWidth(clampGlueTabWidth(Number(event.target.value)))}
                             aria-label="Glue flap width"
                           />
                           <div className="number-input glue-tab-number" style={{ width: glueTabInputWidth }}>
                             <input
                               type="number"
-                              min={unit === "in" ? 0.01 : 0.1}
-                              step={unit === "in" ? 0.01 : 0.1}
+                              min={glueTabMinWidth}
+                              max={glueTabSliderMax}
+                              step={glueTabMinWidth}
                               value={displayedGlueTabValue}
                               disabled={!manualGlueTab}
-                              onChange={(event) => setGlueTabWidth(Number(event.target.value))}
+                              onChange={(event) => setGlueTabWidth(clampGlueTabWidth(Number(event.target.value)))}
                             />
                             <b>{unit}</b>
                           </div>
