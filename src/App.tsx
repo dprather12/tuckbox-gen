@@ -509,7 +509,7 @@ export default function App() {
     ).length + (useWrapArtwork && wrapArtwork ? 1 : 0) + (useWrapText ? 1 : 0);
 
   const handleSvgDownload = (mode = svgExportMode) => {
-    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits) return;
+    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
     downloadSvg(svgRef.current, false, mode);
     trackEvent("template_download", {
       format: mode === "cut" ? "svg_cut" : "svg_artwork",
@@ -527,7 +527,7 @@ export default function App() {
   };
 
   const handlePdf = async () => {
-    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits) return;
+    if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
     setExporting(true);
     try {
       await downloadPdf(svgRef.current, paper, false);
