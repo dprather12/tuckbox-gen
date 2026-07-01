@@ -14,6 +14,7 @@ import {
 } from "./geometry";
 import { downloadPdf, downloadSvg } from "./export";
 import { trackEvent } from "./analytics";
+import { loadArtwork, saveArtwork } from "./artworkStorage";
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from "./preferences";
 import type {
   ArtworkMap,
@@ -93,11 +94,40 @@ export default function App() {
   const [wrapArtwork, setWrapArtwork] = useState<ArtworkSettings>();
   const [wrapMode, setWrapMode] = useState<FaceContentMode>("image");
   const [wrapText, setWrapText] = useState<TextSettings>();
+  const [artworkStorageReady, setArtworkStorageReady] = useState(false);
   const useWrapArtwork = wrapMode === "image" && Boolean(wrapArtwork);
   const useWrapText = wrapMode === "text" && Boolean(wrapText?.content.trim());
   const [exporting, setExporting] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const svgMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadArtwork()
+      .then((stored) => {
+        if (cancelled) return;
+        if (stored) {
+          setArtwork(stored.artwork);
+          setWrapArtwork(stored.wrapArtwork);
+        }
+      })
+      .catch(() => {
+        // Storage failures should not prevent the editor from being used.
+      })
+      .finally(() => {
+        if (!cancelled) setArtworkStorageReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!artworkStorageReady) return;
+    void saveArtwork({ artwork, wrapArtwork }).catch(() => {
+      // Storage failures should not prevent the editor from being used.
+    });
+  }, [artwork, wrapArtwork, artworkStorageReady]);
 
   useEffect(() => {
     savePreferences({
