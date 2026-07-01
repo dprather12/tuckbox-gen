@@ -686,6 +686,7 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
 .toggle input:checked + span::after { transform: translateX(15px); }
 .status-card { display: flex; justify-content: space-between; gap: 20px; padding: 11px 14px; margin: 20px 0 12px; border-radius: 5px; font-size: .72rem; }
 .status-card.success { background: #dce9df; color: #28523c; border-left: 3px solid #47775d; }
+.status-card.warning { background: #f8f2e7; color: #806331; border-left: 3px solid #c99e56; }
 .status-card.error { flex-direction: column; gap: 4px; background: #f2ded8; color: #7f352c; border-left: 3px solid #a94e40; }
 .paper-stage { display: grid; place-items: center; min-height: 610px; margin: 9px 0 28px; padding: 28px; background-color: #d9ded9; background-image: radial-gradient(#aeb8b1 0.7px, transparent 0.7px); background-size: 14px 14px; border: 1px solid #c7cec9; overflow: auto; }
 .paper-shadow { width: min(100%, 650px); filter: drop-shadow(0 12px 20px rgba(32,47,39,.17)); }

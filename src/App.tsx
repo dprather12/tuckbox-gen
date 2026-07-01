@@ -1227,13 +1227,7 @@ export default function App() {
           ) : !printPercentageValid ? (
             <div className="status-card error">Enter a template size between 25% and 200%.</div>
           ) : !fits ? (
-            <div className="status-card error">
-              <strong>This box will not fit at the selected template size.</strong>
-              <span>
-                Template size: {requiredWidth.toFixed(1)} × {requiredHeight.toFixed(1)} mm.
-                Printable area: {printableWidth.toFixed(1)} × {printableHeight.toFixed(1)} mm.
-              </span>
-            </div>
+            <div className="status-card warning">The box may not fit on the paper</div>
           ) : null}
 
           <div className={`paper-stage ${paper.orientation}`}>
@@ -1284,7 +1278,7 @@ export default function App() {
                 </div>
               </label>
               <div className="export-actions">
-                <button className="primary-button export-download-button pdf-download-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits || exporting} onClick={handlePdf}>
+                <button className="primary-button export-download-button pdf-download-button" type="button" disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exporting} onClick={handlePdf}>
                   {exporting ? (
                     <span className="export-download-format">Building PDF...</span>
                   ) : (
@@ -1298,7 +1292,7 @@ export default function App() {
                   <button
                     className="secondary-button export-download-button svg-download-button"
                     type="button"
-                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
                     onClick={() => handleSvgDownload()}
                   >
                     <span className="export-download-kicker">Download</span>
@@ -1309,7 +1303,7 @@ export default function App() {
                     type="button"
                     aria-label="Choose SVG export type"
                     aria-expanded={showSvgMenu}
-                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || !fits}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
                     onClick={() => setShowSvgMenu((current) => !current)}
                   >
                     <span className="svg-menu-caret" aria-hidden="true" />
