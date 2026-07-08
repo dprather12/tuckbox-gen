@@ -12,7 +12,7 @@ import {
   fromMillimeters,
   toMillimeters
 } from "./geometry";
-import { downloadPdf, downloadSvg } from "./export";
+import { downloadCricutPackage, downloadPdf, downloadSvg } from "./export";
 import { trackEvent } from "./analytics";
 import { loadArtwork, saveArtwork } from "./artworkStorage";
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from "./preferences";
@@ -98,6 +98,7 @@ export default function App() {
   const useWrapArtwork = wrapMode === "image" && Boolean(wrapArtwork);
   const useWrapText = wrapMode === "text" && Boolean(wrapText?.content.trim());
   const [exporting, setExporting] = useState(false);
+  const [exportingCricutPackage, setExportingCricutPackage] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const svgMenuRef = useRef<HTMLDivElement>(null);
 
@@ -529,7 +530,7 @@ export default function App() {
     });
   };
 
-  const svgDownloadLabel = svgExportMode === "cut" ? "Cut SVG" : "Artwork SVG";
+  const svgDownloadLabel = svgExportMode === "cut" ? "Cricut Package" : "Artwork SVG";
 
   const decoratedFaceCount =
     faces.filter((face) =>
@@ -538,17 +539,29 @@ export default function App() {
         : Boolean(artwork[face])
     ).length + (useWrapArtwork && wrapArtwork ? 1 : 0) + (useWrapText ? 1 : 0);
 
-  const handleSvgDownload = (mode = svgExportMode) => {
+  const handleSvgDownload = async (mode = svgExportMode) => {
     if (!svgRef.current || !dimensionsValid || !paperDimensionsValid || !printPercentageValid) return;
-    downloadSvg(svgRef.current, false, mode);
-    trackEvent("template_download", {
-      format: mode === "cut" ? "svg_cut" : "svg_artwork",
-      paper: paper.name,
-      orientation: paper.orientation,
-      copies_per_sheet: geometries.length,
-      print_percentage: printPercentage,
-      artwork_faces: decoratedFaceCount
-    });
+    if (mode === "cut") setExportingCricutPackage(true);
+    try {
+      if (mode === "cut") {
+        await downloadCricutPackage(svgRef.current);
+      } else {
+        downloadSvg(svgRef.current, false, mode);
+      }
+      trackEvent("template_download", {
+        format: mode === "cut" ? "cricut_package" : "svg_artwork",
+        paper: paper.name,
+        orientation: paper.orientation,
+        copies_per_sheet: geometries.length,
+        print_percentage: printPercentage,
+        artwork_faces: decoratedFaceCount
+      });
+    } catch (error) {
+      console.error(error);
+      window.alert("The Cricut package could not be generated. Try downloading the Artwork SVG instead.");
+    } finally {
+      if (mode === "cut") setExportingCricutPackage(false);
+    }
   };
 
   const selectSvgExportMode = (mode: SvgExportMode) => {
@@ -1322,18 +1335,24 @@ export default function App() {
                   <button
                     className="secondary-button export-download-button svg-download-button"
                     type="button"
-                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exportingCricutPackage}
                     onClick={() => handleSvgDownload()}
                   >
-                    <span className="export-download-kicker">Download</span>
-                    <span className="export-download-format">{svgDownloadLabel}</span>
+                    {exportingCricutPackage ? (
+                      <span className="export-download-format">Building package...</span>
+                    ) : (
+                      <>
+                        <span className="export-download-kicker">Download</span>
+                        <span className="export-download-format">{svgDownloadLabel}</span>
+                      </>
+                    )}
                   </button>
                   <button
                     className="secondary-button svg-menu-button"
                     type="button"
-                    aria-label="Choose SVG export type"
+                    aria-label="Choose design export type"
                     aria-expanded={showSvgMenu}
-                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid}
+                    disabled={!dimensionsValid || !paperDimensionsValid || !printPercentageValid || exportingCricutPackage}
                     onClick={() => setShowSvgMenu((current) => !current)}
                   >
                     <span className="svg-menu-caret" aria-hidden="true" />
@@ -1345,8 +1364,8 @@ export default function App() {
                         <small>Full design with artwork, fills, and page background.</small>
                       </button>
                       <button type="button" role="menuitemradio" aria-checked={svgExportMode === "cut"} onClick={() => selectSvgExportMode("cut")}>
-                        <span>Cut Template SVG</span>
-                        <small>Cricut-friendly cut/fold lines without artwork fills or page background.</small>
+                        <span>Cricut Package</span>
+                        <small>Print Then Cut PNG, aligned cut/score SVG, and instructions.</small>
                       </button>
                     </div>
                   )}

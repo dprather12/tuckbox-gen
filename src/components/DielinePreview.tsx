@@ -283,6 +283,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     const foldLineWidth = Number((lineThickness * 0.8).toFixed(3));
     const lineStrokeOpacity = Number((lineOpacity / 100).toFixed(2));
     const reliefCutLength = Math.min(4, Math.max(2, g.tuckLip * 0.22));
+    const topReliefCutLength = Math.min(6, Math.max(3, g.tuckLip * 0.3));
     const frontTopY = py + g.bodyY;
     const frontCenterX = panels.front.x + panels.front.width / 2;
     const thumbNotchRadius = Math.min(panels.front.width / 2, Math.max(0.5, thumbNotchSize));
@@ -381,6 +382,21 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
         </g>
 
         <g id={`${rawId}-dieline-copy`}>
+        <g data-export-layer="cricut-silhouette" style={{ display: "none" }}>
+          {faces.map(([face, rect]) => (
+            face === "front" && frontFaceClipPath
+              ? <path key={face} d={frontFaceClipPath} />
+              : <rect key={face} {...rect} />
+          ))}
+          <path d={`${topFlapPath} Z`} />
+          {g.bottomClosure === "tuck" && <path d={`${bottomFlapPath} Z`} />}
+          {bottomUnderFlap && <path d={`${bottomUnderPath} Z`} />}
+          <polygon points={dustPoints(leftTopDust, true, "right")} />
+          <polygon points={dustPoints(rightTopDust, true, "left")} />
+          <polygon points={dustPoints(leftBottomDust, false)} />
+          <polygon points={dustPoints(rightBottomDust, false)} />
+          <polygon points={gluePoints} />
+        </g>
         <g id="artwork" data-export-layer="artwork">
           {useWrapArtwork && wrapArtwork?.fit === "repeat" && (
             faces
@@ -508,16 +524,20 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
           <line
             x1={top.x}
             y1={top.y}
-            x2={top.x + reliefCutLength}
+            x2={top.x + topReliefCutLength}
             y2={top.y}
             className="cut-line"
+            data-export-layer="cricut-internal-cut"
+            style={{ strokeWidth: 1 }}
           />
           <line
-            x1={top.x + top.width - reliefCutLength}
+            x1={top.x + top.width - topReliefCutLength}
             y1={top.y}
             x2={top.x + top.width}
             y2={top.y}
             className="cut-line"
+            data-export-layer="cricut-internal-cut"
+            style={{ strokeWidth: 1 }}
           />
           {g.bottomClosure === "tuck" && (
             <>
@@ -528,6 +548,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                 x2={bottom.x + reliefCutLength}
                 y2={bottom.y + bottom.height}
                 className="cut-line"
+                data-export-layer="cricut-internal-cut"
               />
               <line
                 x1={bottom.x + bottom.width - reliefCutLength}
@@ -535,6 +556,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
                 x2={bottom.x + bottom.width}
                 y2={bottom.y + bottom.height}
                 className="cut-line"
+                data-export-layer="cricut-internal-cut"
               />
             </>
           )}
