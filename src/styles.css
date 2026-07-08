@@ -720,10 +720,10 @@ select { width: 100%; padding: 11px; border: 1px solid #c9d1cb; border-radius: 5
   align-items: center;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #c9d1cb;
+  border: 1px solid #d6b674;
   border-radius: 6px;
-  color: #40564a;
-  background: #f4f5f1;
+  color: #765929;
+  background: #f6ecd8;
   font-size: .78rem;
   font-weight: 700;
 }
