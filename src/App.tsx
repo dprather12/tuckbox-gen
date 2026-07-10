@@ -453,14 +453,12 @@ export default function App() {
     setLineOpacity(DEFAULT_LINE_OPACITY);
     setLineThickness(DEFAULT_LINE_THICKNESS);
     setThumbNotchSize(DEFAULT_THUMB_NOTCH_SIZE);
-    setTuckFlapChamfer(DEFAULT_TUCK_FLAP_CHAMFER);
   };
 
   const lineSettingsAtDefaults =
     lineOpacity === DEFAULT_LINE_OPACITY &&
     lineThickness === DEFAULT_LINE_THICKNESS &&
-    thumbNotchSize === DEFAULT_THUMB_NOTCH_SIZE &&
-    tuckFlapChamfer === DEFAULT_TUCK_FLAP_CHAMFER;
+    thumbNotchSize === DEFAULT_THUMB_NOTCH_SIZE;
 
   const updateArtwork = (face: FaceName, next?: ArtworkSettings) => {
     const previous = artwork[face];
@@ -929,20 +927,6 @@ export default function App() {
                               onChange={(event) => updateThumbNotchSize(event.target.value)}
                             />
                           </label>
-                          <label className="field line-style-field">
-                            <span>
-                              Tuck flap chamfer
-                              <small>{tuckFlapChamfer.toFixed(1)} mm</small>
-                            </span>
-                            <input
-                              type="range"
-                              min="0"
-                              max="8"
-                              step="0.5"
-                              value={tuckFlapChamfer}
-                              onChange={(event) => updateTuckFlapChamfer(event.target.value)}
-                            />
-                          </label>
                         </div>
                       )}
                       <label>
@@ -1115,7 +1099,7 @@ export default function App() {
                     aria-expanded={showTuckFlapSettings}
                     onClick={() => setShowTuckFlapSettings((current) => !current)}
                   >
-                    <span>Tuck flap width</span>
+                    <span>Tuck flap</span>
                     <span aria-hidden="true">{showTuckFlapSettings ? "-" : "+"}</span>
                   </button>
                   {showTuckFlapSettings && (
@@ -1165,6 +1149,20 @@ export default function App() {
                           </div>
                         </div>
                       </div>
+                      <label className="field line-style-field">
+                        <span>
+                          Tuck flap chamfer
+                          <small>{tuckFlapChamfer.toFixed(1)} mm</small>
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="8"
+                          step="0.5"
+                          value={tuckFlapChamfer}
+                          onChange={(event) => updateTuckFlapChamfer(event.target.value)}
+                        />
+                      </label>
                     </div>
                   )}
                 </div>
@@ -1279,7 +1277,6 @@ export default function App() {
                 faceText={faceText}
                 showThumbNotch={showThumbNotch}
                 thumbNotchSize={thumbNotchSize}
-                tuckFlapChamfer={tuckFlapChamfer}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={wrapArtwork}
                 wrapMode={wrapMode}
