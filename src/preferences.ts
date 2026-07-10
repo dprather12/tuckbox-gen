@@ -27,6 +27,7 @@ export interface Preferences {
   glueTabWidth: number;
   manualTuckFlap: boolean;
   tuckFlapWidth: number;
+  tuckFlapChamfer: number;
   colorFlaps: boolean;
   hideCutLines: boolean;
   hideFoldLines: boolean;
@@ -72,6 +73,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   glueTabWidth: 0.6,
   manualTuckFlap: false,
   tuckFlapWidth: 0.45,
+  tuckFlapChamfer: 0,
   colorFlaps: true,
   hideCutLines: false,
   hideFoldLines: false,
@@ -100,6 +102,9 @@ const isLineThickness = (value: unknown): value is number =>
 
 const isThumbNotchSize = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 2 && value <= 12;
+
+const isTuckFlapChamfer = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 8;
 
 export function loadPreferences(): Preferences {
   if (typeof window === "undefined") return DEFAULT_PREFERENCES;
@@ -184,6 +189,9 @@ export function loadPreferences(): Preferences {
       tuckFlapWidth: isPositiveNumber(stored.tuckFlapWidth)
         ? stored.tuckFlapWidth
         : DEFAULT_PREFERENCES.tuckFlapWidth,
+      tuckFlapChamfer: isTuckFlapChamfer(stored.tuckFlapChamfer)
+        ? stored.tuckFlapChamfer
+        : DEFAULT_PREFERENCES.tuckFlapChamfer,
       colorFlaps: typeof stored.colorFlaps === "boolean"
         ? stored.colorFlaps
         : DEFAULT_PREFERENCES.colorFlaps,

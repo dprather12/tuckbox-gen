@@ -34,6 +34,7 @@ interface Props {
   lineOpacity: number;
   lineThickness: number;
   thumbNotchSize: number;
+  tuckFlapChamfer: number;
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
@@ -137,6 +138,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     lineOpacity,
     lineThickness,
     thumbNotchSize,
+    tuckFlapChamfer,
     showThumbNotch,
     useWrapArtwork,
     wrapArtwork,
@@ -190,8 +192,26 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
       wrapArtwork?.imageWidth && wrapArtwork.imageHeight
         ? wrapTileHeight * (wrapArtwork.imageWidth / wrapArtwork.imageHeight)
         : wrapTileHeight;
-    const topFlapPath = `M ${top.x + top.width} ${top.y} L ${top.x + top.width} ${top.y - g.tuckLip * 0.35} Q ${top.x + top.width / 2} ${top.y - g.tuckLip} ${top.x} ${top.y - g.tuckLip * 0.35} L ${top.x} ${top.y}`;
-    const bottomFlapPath = `M ${bottom.x} ${bottom.y + bottom.height} L ${bottom.x} ${bottom.y + bottom.height + g.tuckLip * 0.35} Q ${bottom.x + bottom.width / 2} ${bottom.y + bottom.height + g.tuckLip} ${bottom.x + bottom.width} ${bottom.y + bottom.height + g.tuckLip * 0.35} L ${bottom.x + bottom.width} ${bottom.y + bottom.height}`;
+    const buildTuckFlapPath = (
+      rect: Rect,
+      baseY: number,
+      tuckLip: number,
+      chamfer: number,
+      direction: 1 | -1
+    ) => {
+      const edgeOffset = tuckLip * 0.35;
+      const c = Math.min(Math.max(chamfer, 0), edgeOffset, rect.width / 2);
+      const edgeY = baseY + direction * edgeOffset;
+      const tipY = baseY + direction * tuckLip;
+      const rightX = rect.x + rect.width;
+      const leftX = rect.x;
+      const midX = rect.x + rect.width / 2;
+      const start = c > 0 ? `M ${rightX - c} ${baseY} L ${rightX} ${baseY + direction * c}` : `M ${rightX} ${baseY}`;
+      const end = c > 0 ? `L ${leftX} ${baseY + direction * c} L ${leftX + c} ${baseY}` : `L ${leftX} ${baseY}`;
+      return `${start} L ${rightX} ${edgeY} Q ${midX} ${tipY} ${leftX} ${edgeY} ${end}`;
+    };
+    const topFlapPath = buildTuckFlapPath(top, top.y, g.tuckLip, tuckFlapChamfer, -1);
+    const bottomFlapPath = buildTuckFlapPath(bottom, bottom.y + bottom.height, g.tuckLip, tuckFlapChamfer, 1);
     const bottomUnderPath = bottomUnderFlap
       ? `M ${bottomUnderFlap.x} ${bottomUnderFlap.y} L ${bottomUnderFlap.x + 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width - 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width} ${bottomUnderFlap.y}`
       : "";

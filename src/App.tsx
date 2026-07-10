@@ -40,6 +40,7 @@ const INTERNAL_PRINT_BASELINE = 1.05;
 const DEFAULT_LINE_OPACITY = DEFAULT_PREFERENCES.lineOpacity;
 const DEFAULT_LINE_THICKNESS = DEFAULT_PREFERENCES.lineThickness;
 const DEFAULT_THUMB_NOTCH_SIZE = DEFAULT_PREFERENCES.thumbNotchSize;
+const DEFAULT_TUCK_FLAP_CHAMFER = DEFAULT_PREFERENCES.tuckFlapChamfer;
 const faceLabels: Record<FaceName, string> = {
   front: "Front",
   back: "Back",
@@ -67,6 +68,7 @@ export default function App() {
   const [glueTabWidth, setGlueTabWidth] = useState(initialPreferences.glueTabWidth);
   const [manualTuckFlap, setManualTuckFlap] = useState(initialPreferences.manualTuckFlap);
   const [tuckFlapWidth, setTuckFlapWidth] = useState(initialPreferences.tuckFlapWidth);
+  const [tuckFlapChamfer, setTuckFlapChamfer] = useState(initialPreferences.tuckFlapChamfer);
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
   const [hideCutLines, setHideCutLines] = useState(initialPreferences.hideCutLines);
   const [hideFoldLines, setHideFoldLines] = useState(initialPreferences.hideFoldLines);
@@ -144,6 +146,7 @@ export default function App() {
       glueTabWidth,
       manualTuckFlap,
       tuckFlapWidth,
+      tuckFlapChamfer,
       colorFlaps,
       hideCutLines,
       hideFoldLines,
@@ -171,6 +174,7 @@ export default function App() {
     glueTabWidth,
     manualTuckFlap,
     tuckFlapWidth,
+    tuckFlapChamfer,
     colorFlaps,
     hideCutLines,
     hideFoldLines,
@@ -440,16 +444,23 @@ export default function App() {
     setThumbNotchSize(Math.min(12, Math.max(2, Number.isFinite(numeric) ? numeric : DEFAULT_THUMB_NOTCH_SIZE)));
   };
 
+  const updateTuckFlapChamfer = (value: string) => {
+    const numeric = Number(value);
+    setTuckFlapChamfer(Math.min(8, Math.max(0, Number.isFinite(numeric) ? numeric : DEFAULT_TUCK_FLAP_CHAMFER)));
+  };
+
   const resetLineDefaults = () => {
     setLineOpacity(DEFAULT_LINE_OPACITY);
     setLineThickness(DEFAULT_LINE_THICKNESS);
     setThumbNotchSize(DEFAULT_THUMB_NOTCH_SIZE);
+    setTuckFlapChamfer(DEFAULT_TUCK_FLAP_CHAMFER);
   };
 
   const lineSettingsAtDefaults =
     lineOpacity === DEFAULT_LINE_OPACITY &&
     lineThickness === DEFAULT_LINE_THICKNESS &&
-    thumbNotchSize === DEFAULT_THUMB_NOTCH_SIZE;
+    thumbNotchSize === DEFAULT_THUMB_NOTCH_SIZE &&
+    tuckFlapChamfer === DEFAULT_TUCK_FLAP_CHAMFER;
 
   const updateArtwork = (face: FaceName, next?: ArtworkSettings) => {
     const previous = artwork[face];
@@ -918,6 +929,20 @@ export default function App() {
                               onChange={(event) => updateThumbNotchSize(event.target.value)}
                             />
                           </label>
+                          <label className="field line-style-field">
+                            <span>
+                              Tuck flap chamfer
+                              <small>{tuckFlapChamfer.toFixed(1)} mm</small>
+                            </span>
+                            <input
+                              type="range"
+                              min="0"
+                              max="8"
+                              step="0.5"
+                              value={tuckFlapChamfer}
+                              onChange={(event) => updateTuckFlapChamfer(event.target.value)}
+                            />
+                          </label>
                         </div>
                       )}
                       <label>
@@ -1254,6 +1279,7 @@ export default function App() {
                 faceText={faceText}
                 showThumbNotch={showThumbNotch}
                 thumbNotchSize={thumbNotchSize}
+                tuckFlapChamfer={tuckFlapChamfer}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={wrapArtwork}
                 wrapMode={wrapMode}
@@ -1290,6 +1316,7 @@ export default function App() {
                 lineThickness={lineThickness}
                 showThumbNotch={showThumbNotch}
                 thumbNotchSize={thumbNotchSize}
+                tuckFlapChamfer={tuckFlapChamfer}
                 useWrapArtwork={useWrapArtwork}
                 wrapArtwork={wrapArtwork}
                 wrapMode={wrapMode}
