@@ -15,7 +15,13 @@ import {
 import { downloadCricutPackage, downloadPdf, downloadSvg } from "./export";
 import { trackEvent } from "./analytics";
 import { loadArtwork, saveArtwork } from "./artworkStorage";
-import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from "./preferences";
+import {
+  DEFAULT_PREFERENCES,
+  loadPreferences,
+  loadUnitPreference,
+  savePreferences,
+  saveUnitPreference
+} from "./preferences";
 import type {
   ArtworkMap,
   ArtworkSettings,
@@ -52,7 +58,7 @@ const faceLabels: Record<FaceName, string> = {
 
 export default function App() {
   const [initialPreferences] = useState(loadPreferences);
-  const [unit, setUnit] = useState<Unit>(initialPreferences.unit);
+  const [unit, setUnit] = useState<Unit>(() => loadUnitPreference() ?? initialPreferences.unit);
   const [dimensions, setDimensions] = useState<BoxDimensions>(initialPreferences.dimensions);
   const [dimensionCalculator, setDimensionCalculator] = useState<DimensionCalculatorSettings>(
     initialPreferences.dimensionCalculator
@@ -189,6 +195,10 @@ export default function App() {
     masterOpacity,
     faceOpacities
   ]);
+
+  useEffect(() => {
+    saveUnitPreference(unit);
+  }, [unit]);
 
   useEffect(() => {
     if (!showSvgMenu) return;

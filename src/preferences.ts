@@ -13,6 +13,7 @@ import type {
 } from "./types";
 
 const STORAGE_KEY = "tuckbox-studio-preferences-v1";
+const UNIT_STORAGE_KEY = "tuckbox-studio-unit-v1";
 
 export interface Preferences {
   unit: Unit;
@@ -105,6 +106,27 @@ const isThumbNotchSize = (value: unknown): value is number =>
 
 const isTuckFlapChamfer = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 8;
+
+export function loadUnitPreference(): Unit | undefined {
+  if (typeof window === "undefined") return undefined;
+
+  try {
+    const unit = window.localStorage.getItem(UNIT_STORAGE_KEY);
+    return unit === "mm" || unit === "in" ? unit : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveUnitPreference(unit: Unit): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(UNIT_STORAGE_KEY, unit);
+  } catch {
+    // Private browsing or storage limits should not prevent using the app.
+  }
+}
 
 export function loadPreferences(): Preferences {
   if (typeof window === "undefined") return DEFAULT_PREFERENCES;
