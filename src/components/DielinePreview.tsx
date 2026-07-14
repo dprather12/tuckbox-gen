@@ -35,6 +35,7 @@ interface Props {
   lineThickness: number;
   thumbNotchSize: number;
   tuckFlapChamfer: number;
+  tuckFlapOutsideChamfer: number;
   showThumbNotch: boolean;
   useWrapArtwork: boolean;
   wrapArtwork?: ArtworkSettings;
@@ -139,6 +140,7 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
     lineThickness,
     thumbNotchSize,
     tuckFlapChamfer,
+    tuckFlapOutsideChamfer,
     showThumbNotch,
     useWrapArtwork,
     wrapArtwork,
@@ -197,21 +199,57 @@ export const DielinePreview = forwardRef<SVGSVGElement, Props>(
       baseY: number,
       tuckLip: number,
       chamfer: number,
+      outsideChamfer: number,
       direction: 1 | -1
     ) => {
       const edgeOffset = tuckLip * 0.35;
-      const c = Math.min(Math.max(chamfer, 0), edgeOffset, rect.width / 2);
+      const requestedInnerChamfer = Math.min(Math.max(chamfer, 0), rect.width / 2);
+      const outsideChamferAngle = 20 * Math.PI / 180;
+      const outsideChamferSlope = Math.tan(outsideChamferAngle);
+
+      const outerC = Math.min(Math.max(outsideChamfer, 0), rect.width / 2);
+      const outerInset = Math.max(0, outerC - edgeOffset) * outsideChamferSlope;
+      const outerShoulderDepth = Math.min(outerC, edgeOffset);
+      const c = requestedInnerChamfer;
+
+      const outerShoulderInset = outerShoulderDepth * outsideChamferSlope;
       const edgeY = baseY + direction * edgeOffset;
       const tipY = baseY + direction * tuckLip;
       const rightX = rect.x + rect.width;
       const leftX = rect.x;
       const midX = rect.x + rect.width / 2;
-      const start = c > 0 ? `M ${rightX - c} ${baseY} L ${rightX} ${baseY + direction * c}` : `M ${rightX} ${baseY}`;
-      const end = c > 0 ? `L ${leftX} ${baseY + direction * c} L ${leftX + c} ${baseY}` : `L ${leftX} ${baseY}`;
-      return `${start} L ${rightX} ${edgeY} Q ${midX} ${tipY} ${leftX} ${edgeY} ${end}`;
+      const rightSideX = rightX - outerInset;
+      const leftSideX = leftX + outerInset;
+      const start = c > 0
+        ? `M ${rightSideX - c} ${baseY} L ${rightSideX} ${baseY + direction * c}`
+        : `M ${rightSideX} ${baseY}`;
+      const rightShoulderY = edgeY - direction * outerShoulderDepth;
+      const leftShoulderY = edgeY - direction * outerShoulderDepth;
+      const rightCurveX = rightSideX - outerShoulderInset;
+      const leftCurveX = leftSideX + outerShoulderInset;
+      const end = c > 0
+        ? `L ${leftSideX} ${baseY + direction * c} L ${leftSideX + c} ${baseY}`
+        : `L ${leftSideX} ${baseY}`;
+      const outerStartDepth = edgeOffset - outerShoulderDepth;
+      const intersectionDepth = (c + outsideChamferSlope * outerStartDepth) / (1 + outsideChamferSlope);
+      const chamfersIntersect =
+        c > 0 &&
+        outerShoulderDepth > 0 &&
+        intersectionDepth >= outerStartDepth &&
+        intersectionDepth <= c &&
+        intersectionDepth <= edgeOffset;
+
+      if (chamfersIntersect) {
+        const rightIntersectionX = rightSideX - (c - intersectionDepth);
+        const leftIntersectionX = leftSideX + (c - intersectionDepth);
+        const intersectionY = baseY + direction * intersectionDepth;
+        return `M ${rightSideX - c} ${baseY} L ${rightIntersectionX} ${intersectionY} L ${rightCurveX} ${edgeY} Q ${midX} ${tipY} ${leftCurveX} ${edgeY} L ${leftIntersectionX} ${intersectionY} L ${leftSideX + c} ${baseY}`;
+      }
+
+      return `${start} L ${rightSideX} ${rightShoulderY} L ${rightCurveX} ${edgeY} Q ${midX} ${tipY} ${leftCurveX} ${edgeY} L ${leftSideX} ${leftShoulderY} ${end}`;
     };
-    const topFlapPath = buildTuckFlapPath(top, top.y, g.tuckLip, tuckFlapChamfer, -1);
-    const bottomFlapPath = buildTuckFlapPath(bottom, bottom.y + bottom.height, g.tuckLip, tuckFlapChamfer, 1);
+    const topFlapPath = buildTuckFlapPath(top, top.y, g.tuckLip, tuckFlapChamfer, tuckFlapOutsideChamfer, -1);
+    const bottomFlapPath = buildTuckFlapPath(bottom, bottom.y + bottom.height, g.tuckLip, tuckFlapChamfer, tuckFlapOutsideChamfer, 1);
     const bottomUnderPath = bottomUnderFlap
       ? `M ${bottomUnderFlap.x} ${bottomUnderFlap.y} L ${bottomUnderFlap.x + 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width - 3} ${bottomUnderFlap.y + bottomUnderFlap.height} L ${bottomUnderFlap.x + bottomUnderFlap.width} ${bottomUnderFlap.y}`
       : "";

@@ -47,6 +47,7 @@ const DEFAULT_LINE_OPACITY = DEFAULT_PREFERENCES.lineOpacity;
 const DEFAULT_LINE_THICKNESS = DEFAULT_PREFERENCES.lineThickness;
 const DEFAULT_THUMB_NOTCH_SIZE = DEFAULT_PREFERENCES.thumbNotchSize;
 const DEFAULT_TUCK_FLAP_CHAMFER = DEFAULT_PREFERENCES.tuckFlapChamfer;
+const DEFAULT_TUCK_FLAP_OUTSIDE_CHAMFER = DEFAULT_PREFERENCES.tuckFlapOutsideChamfer;
 const faceLabels: Record<FaceName, string> = {
   front: "Front",
   back: "Back",
@@ -75,6 +76,7 @@ export default function App() {
   const [manualTuckFlap, setManualTuckFlap] = useState(initialPreferences.manualTuckFlap);
   const [tuckFlapWidth, setTuckFlapWidth] = useState(initialPreferences.tuckFlapWidth);
   const [tuckFlapChamfer, setTuckFlapChamfer] = useState(initialPreferences.tuckFlapChamfer);
+  const [tuckFlapOutsideChamfer, setTuckFlapOutsideChamfer] = useState(initialPreferences.tuckFlapOutsideChamfer);
   const [colorFlaps, setColorFlaps] = useState(initialPreferences.colorFlaps);
   const [hideCutLines, setHideCutLines] = useState(initialPreferences.hideCutLines);
   const [hideFoldLines, setHideFoldLines] = useState(initialPreferences.hideFoldLines);
@@ -153,6 +155,7 @@ export default function App() {
       manualTuckFlap,
       tuckFlapWidth,
       tuckFlapChamfer,
+      tuckFlapOutsideChamfer,
       colorFlaps,
       hideCutLines,
       hideFoldLines,
@@ -181,6 +184,7 @@ export default function App() {
     manualTuckFlap,
     tuckFlapWidth,
     tuckFlapChamfer,
+    tuckFlapOutsideChamfer,
     colorFlaps,
     hideCutLines,
     hideFoldLines,
@@ -463,6 +467,12 @@ export default function App() {
     setLineOpacity(DEFAULT_LINE_OPACITY);
     setLineThickness(DEFAULT_LINE_THICKNESS);
     setThumbNotchSize(DEFAULT_THUMB_NOTCH_SIZE);
+  };
+  const updateTuckFlapOutsideChamfer = (value: string) => {
+    const numeric = Number(value);
+    setTuckFlapOutsideChamfer(
+      Math.min(11, Math.max(0, Number.isFinite(numeric) ? numeric : DEFAULT_TUCK_FLAP_OUTSIDE_CHAMFER))
+    );
   };
 
   const lineSettingsAtDefaults =
@@ -1173,6 +1183,20 @@ export default function App() {
                           onChange={(event) => updateTuckFlapChamfer(event.target.value)}
                         />
                       </label>
+                      <label className="field line-style-field">
+                        <span>
+                          Outside flap chamfer
+                          <small>{tuckFlapOutsideChamfer.toFixed(1)} mm (20 deg)</small>
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="11"
+                          step="0.5"
+                          value={tuckFlapOutsideChamfer}
+                          onChange={(event) => updateTuckFlapOutsideChamfer(event.target.value)}
+                        />
+                      </label>
                     </div>
                   )}
                 </div>
@@ -1328,6 +1352,7 @@ export default function App() {
                 wrapArtwork={wrapArtwork}
                 wrapMode={wrapMode}
                 wrapText={wrapText}
+                tuckFlapOutsideChamfer={tuckFlapOutsideChamfer}
                 masterOpacity={masterOpacity}
                 faceOpacities={faceOpacities}
                 onArtworkPositionChange={updateArtworkPosition}

@@ -29,6 +29,7 @@ export interface Preferences {
   manualTuckFlap: boolean;
   tuckFlapWidth: number;
   tuckFlapChamfer: number;
+  tuckFlapOutsideChamfer: number;
   colorFlaps: boolean;
   hideCutLines: boolean;
   hideFoldLines: boolean;
@@ -75,6 +76,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   manualTuckFlap: false,
   tuckFlapWidth: 0.45,
   tuckFlapChamfer: 0,
+  tuckFlapOutsideChamfer: 0,
   colorFlaps: true,
   hideCutLines: false,
   hideFoldLines: false,
@@ -103,6 +105,9 @@ const isLineThickness = (value: unknown): value is number =>
 
 const isThumbNotchSize = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 2 && value <= 12;
+const isTuckFlapOutsideChamfer = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 11;
+
 
 const isTuckFlapChamfer = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 8;
@@ -214,6 +219,9 @@ export function loadPreferences(): Preferences {
       tuckFlapChamfer: isTuckFlapChamfer(stored.tuckFlapChamfer)
         ? stored.tuckFlapChamfer
         : DEFAULT_PREFERENCES.tuckFlapChamfer,
+      tuckFlapOutsideChamfer: isTuckFlapOutsideChamfer(stored.tuckFlapOutsideChamfer)
+        ? stored.tuckFlapOutsideChamfer
+        : DEFAULT_PREFERENCES.tuckFlapOutsideChamfer,
       colorFlaps: typeof stored.colorFlaps === "boolean"
         ? stored.colorFlaps
         : DEFAULT_PREFERENCES.colorFlaps,
